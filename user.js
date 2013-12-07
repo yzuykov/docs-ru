@@ -19,7 +19,7 @@ $DOC.sections['header-panel'] =
 if ($OPT.editable) {
     $DOC.sections['footer-panel'] =
 '%footer-layout#scheme=line(\
-* © 2013 [docs-ru on GitHub](https://github.com/aplib/docs-ru) Artistic license 2.0\
+* © 2013 [docs-ru on GitHub](https://github.com/aplib/docs-ru) Artistic license 2.0\n\
 ***\n\
 * [Редактировать эту страницу](?edit)\
 )%footer-layout';
