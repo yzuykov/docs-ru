@@ -1,4 +1,4 @@
-docs-ru
+docs.ru
 =======
 
-Документация по системе Markdown webdocs на русском языке (ru)
+Markdown webdocs
