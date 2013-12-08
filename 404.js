@@ -144,10 +144,10 @@
             setInterval(function() {
                 var user = modal.user.value, repo = modal.repo.value;
                 if (user && repo) {
-                    var reporef = 'github.com' + '/' + user + '/' + repo;
+                    var reporef = 'https://github.com' + '/' + user + '/' + repo;
                     modal.ref0
                         ._text(reporef)
-                        ._attr('href', 'https://' + reporef);
+                        ._attr('href', reporef);
                 }
             }, 977);
             
