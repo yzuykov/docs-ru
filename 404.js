@@ -138,9 +138,9 @@
             modal.cancel = modal.footer.add('bootstrap.Button', 'Cancel');
             
             // reference
-            modal.body.form._add('bootstrap.FormGroup', function(grp) {
-                modal.ref0 = grp.add('a`martop20', {target:'repo'});
-            });
+            modal.ref0 = 
+                form.add('bootstrap.FormGroup')
+                    .add('a`martop20', {target:'repo'});
             setInterval(function() {
                 var user = modal.user.value, repo = modal.repo.value;
                 if (user && repo) {
