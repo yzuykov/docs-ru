@@ -1,5 +1,5 @@
 (function() {
-    var repo = 'docs.ru', lang = '';
+    var repo = 'docs-ru', lang = '';
     $('title').text('Запрашиваемая страница не найдена');
 
     $DOC.onload(function() {
@@ -131,7 +131,7 @@
                     modal.path = grp.add('bootstrap.ControlInput');
                 })
                 ._add('bootstrap.FormGroup', function(grp) {
-                    grp._add('bootstrap.ControlLabel', 'Personal access token:');
+                    grp._add('bootstrap.ControlLabel', 'Personal access token or password:');
                     modal.apikey = grp.add('bootstrap.ControlInput');
                 });
             modal.ok = modal.footer.add('bootstrap.Button#primary', 'OK');
