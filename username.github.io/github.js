@@ -50,7 +50,7 @@
     function _request(method, path, data, cb, raw, sync) {
       function getURL() {
         var url = path.indexOf('//') >= 0 ? path : API_URL + path;
-        return url + ((/\?/).test(url) ? "&" : "?") + (new Date()).getTime();
+        return url;// + ((/\?/).test(url) ? "&" : "?") + (new Date()).getTime();
       }
 
       var xhr = new XMLHttpRequest();
@@ -252,7 +252,7 @@
       this.getTree = function(tree, cb) {
         _request("GET", repoPath + "/git/trees/"+tree, null, function(err, res) {
           if (err) return cb(err);
-          cb(null, res.tree);
+          cb(null, res.tree, res);
         });
       };
 
@@ -298,8 +298,11 @@
       // with a new blob SHA getting a tree SHA back
       // -------
 
-      this.postTree = function(tree, cb) {
-        _request("POST", repoPath + "/git/trees", { "tree": tree }, function(err, res) {
+      this.postTree = function(tree, cb, base_tree) {
+          var data = { "tree": tree };
+          if (base_tree)
+              data.base_tree = base_tree;
+        _request("POST", repoPath + "/git/trees", data, function(err, res) {
           if (err) return cb(err);
           cb(null, res.sha);
         });
@@ -322,9 +325,9 @@
         };
 
         _request("POST", repoPath + "/git/commits", data, function(err, res) {
-          currentTree.sha = res.sha; // update latest commit
+          currentTree.sha = res && res.sha; // update latest commit
           if (err) return cb(err);
-          cb(null, res.sha);
+          cb(null, res && res.sha);
         });
       };
 
@@ -435,30 +438,51 @@
 
       this.remove = function(branch, path, cb) {
         updateTree(branch, function(err, latestCommit) {
-          that.getTree(latestCommit+"?recursive=true", function(err, tree) {
+          that.getTree(latestCommit+"?recursive=true", function(err, tree, res) {
             // Update Tree
-            var newTree = _.reject(tree, function(ref) { return ref.path === path; });
-            _.each(newTree, function(ref) {
-              if (ref.type === "tree") delete ref.sha;
-            });
-
+            //!Ad undescore 'fixed'
+            var newTree = tree.filter(function(ref) { return ref.path !== path; });
+            newTree.forEach(function(ref) { if (ref.type === "tree") delete ref.sha; });
+            
             that.postTree(newTree, function(err, rootTree) {
               that.commit(latestCommit, rootTree, 'Deleted '+path , function(err, commit) {
                 that.updateHead(branch, commit, function(err) {
                   cb(err);
                 });
               });
-            });
+            }, res.sha);
           });
         });
       };
-
+      
+    //!Ad
+    this.removeFile = function(branch, path, cb) {
+        try {
+            updateTree(branch, function(err, latestCommit) {
+                that.getTree(latestCommit+"?recursive=true", function(err, tree, res) {
+                    if (tree)
+                    tree.some(function(ref) {
+                        if (ref.path === path && ref.type === 'blob') {
+                            var data = {path: ref.path, message: '---', sha: ref.sha, branch: branch};
+                            _request("DELETE", repoPath + "/contents/" + path, data, function(err, res) {
+                                if (err) return cb(err);
+                                cb(null, res.sha);
+                            });
+                        }
+                    });
+                });
+            });
+        } catch(e) {
+            cb(e);
+        }
+    };
+      
       // Move a file to a new location
       // -------
 
       this.move = function(branch, path, newPath, cb) {
         updateTree(branch, function(err, latestCommit) {
-          that.getTree(latestCommit+"?recursive=true", function(err, tree) {
+          that.getTree(latestCommit+"?recursive=true", function(err, tree, res) {
             // Update Tree
             _.each(tree, function(ref) {
               if (ref.path === path) ref.path = newPath;
@@ -471,7 +495,7 @@
                   cb(err);
                 });
               });
-            });
+            }, res.sha);
           });
         });
       };
