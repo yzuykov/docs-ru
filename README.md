@@ -1,8 +1,8 @@
-Markdown webdocs
+Markdown webdocs, docs-ru template, fork me!
 =======
-Документация на русском языке (ru)  
-Это образец для создания документации на одном языке  
+Шаблон для создания сайта с публикациями, Русский RU язык  
 
 FAQ [Как создать новый раздел справки для своего аккаунта на GitHub](http://aplib.github.io/docs-ru/faq#создать-онлайн-справку-на-github)  
-Сайт документации: [http://aplib.github.io/docs-ru](http://aplib.github.io/docs-ru)
-
+Статья на Хабре [Cистема подготовки веб-справки с использованием GitHub Pages](http://habrahabr.ru/post/205364/)  
+Собственно этот сайт: [http://aplib.github.io/docs-ru](http://aplib.github.io/docs-ru)  
+Базовый сайт проекта Markdown webdocs [http://aplib.github.io/markdown-site-template/](http://aplib.github.io/markdown-site-template/)  
