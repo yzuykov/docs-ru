@@ -11,38 +11,28 @@
     <noscript><style>#default404{display:block;}</style></noscript>
     <script type="text/javascript">
         
-        // const*
-        var multilingual_repos = ['/docs/'],  // multilingual repositories /docs/en/
-            singlelang_repos = ['/docs-ru/']; // single-language repositories
-        
-        var path = window.location.pathname;
-        
-        // ^/docs*$ redirect to /docs*/
-        var loc = path + '/';
-        if (multilingual_repos.indexOf(loc) >= 0 || singlelang_repos.indexOf(loc) >= 0)
-            window.location = loc;
-        else {
-            var def = true;
-            for(var i in multilingual_repos) {
-                var repo = multilingual_repos[i];
-                if (path.substr(0, repo.length) === repo) {
-                    path = path.split('/').slice(0,3).join('/');
-                    $DOC.appendScript(path + '/404.js');
-                    $DOC.appendScript(path + '/user.js');
-                    def = false;
+        // Step 1. Location in mw repository folder, load 404.js + user.js
+        var docs_repositories = ['/docs-ru/'],
+        // Step 2. Default routing rules
+        routing = [/^\/docs-ru$/, '/docs-ru/'];
+            
+        var hit, pathname = window.location.pathname;
+        for(var i = 0, c = docs_repositories.length; i < c; i++) {
+            var repo_path = docs_repositories[i];
+            if (pathname.substr(0, repo_path.length) === repo_path) {
+                $DOC.appendScript(repo_path + '/404.js');
+                $DOC.appendScript(repo_path + '/user.js');
+                hit = true;
+            }
+        }
+        if (!hit) {
+            $DOC.appendCSS('#default404{display:block;}');
+            for(var i = 0, c = routing.length; i < c; i+=2) {
+                if (routing[i].test(pathname)) {
+                    window.location = routing[i + 1];
+                    hit = true;
                 }
             }
-            for(var i in singlelang_repos) {
-                var repo = singlelang_repos[i];
-                if (path.substr(0, repo.length) === repo) {
-                    path = path.split('/').slice(0,2).join('/');
-                    $DOC.appendScript(path + '/404.js');
-                    $DOC.appendScript(path + '/user.js');
-                    def = false;
-                }
-            }
-            if (def)
-                $DOC.appendCSS('#default404{display:block;}');
         }
     </script>
 </head>
