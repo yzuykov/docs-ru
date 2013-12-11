@@ -12015,8 +12015,7 @@ function Bootstrap(controls) {
     TabHeader.template = function(it) {
         var attrs = it.attributes;
         return '<li' + it.printAttributes() + '><a href="' + (attrs.$href || '') + '" data-toggle="tab">'
-            + (attrs.$icon ? ('<span class="glyphicon glyphicon-' + attrs.$icon + '"></span>') : '')
-            + ((attrs.$icon && attrs.$text) ? '&nbsp;' : '')
+            + (attrs.$icon ? ('<span class="glyphicon glyphicon-' + attrs.$icon + '"></span>' + ((attrs.$text) ? '&nbsp;' : '')) : '')
             + (attrs.$text || '')
             + '</a></li>';
     };
@@ -13385,17 +13384,20 @@ if (typeof exports === 'object') {
         object.parameters   = parameters || {};
         object.controls     = [];               // This is a collection of nested objects
         
-        if (outer_template)
-        Object.defineProperty(object, 'outer_template', {
-            enumerable: true, writable: true,
-            value: outer_template
-        });
-
-        if (inner_template)
-        Object.defineProperty(object, 'inner_template', {
-            enumerable: true, writable: true,
-            value: inner_template
-        });
+        if (outer_template) {
+            outer_template.no_serialize = true;
+            Object.defineProperty(object, 'outer_template', {
+                enumerable: true, writable: true,
+                value: outer_template
+            });
+        }
+        if (inner_template) {
+            inner_template.no_serialize = true;
+            Object.defineProperty(object, 'inner_template', {
+                enumerable: true, writable: true,
+                value: inner_template
+            });
+        }
     
         return object;
     };
@@ -13917,10 +13919,16 @@ DOMNodeInsertedIntoDocument,DOMNodeRemoved,DOMNodeRemovedFromDocument,DOMSubtree
             if (ctrls.length)
                 json.controls = ctrls;
             
-            if (this.hasOwnProperty('outer_template'))
-                json.outer_template = extract_func_code(this.outer_template);
-            if (this.hasOwnProperty('inner_template'))
-                json.inner_template = extract_func_code(this.inner_template);
+            if (this.hasOwnProperty('outer_template')) {
+                var outer_template = this.outer_template;
+                if (!outer_template.no_serialize)
+                    json.outer_template = extract_func_code(this.outer_template);
+            }
+            if (this.hasOwnProperty('inner_template')) {
+                var inner_template = this.outer_template;
+                if (!inner_template.no_serialize)
+                    json.inner_template = extract_func_code(this.inner_template);
+            }
             
             var events = this.events;
             if (events) {
@@ -14049,11 +14057,11 @@ DOMNodeInsertedIntoDocument,DOMNodeRemoved,DOMNodeRemovedFromDocument,DOMSubtree
                 opcode = 0;
             }
             
+            if (node && '__type' in node)
+                node = node.element;
+            
             if (!node)
                 throw new TypeError('Failed to create element!');
-
-            if ('__type' in node)
-                node = node.element;
             
             if (node.insertAdjacentHTML) {
                 var pos;
@@ -15145,22 +15153,22 @@ table,tbody,td,textarea,tfoot,th,thead,time,title,tr,u,ul,var,video,wbr'
     
     // Head
     function Head(parameters, attributes) {
-        controls.controlInitialize(this, 'controls.head', parameters, attributes, Head.template);
+        controls.controlInitialize(this, 'controls.head', parameters, attributes, Head.outer_template);
         this.attach    = function() { this.element = document.head; return this; };
         this.attachAll = function() { this.element = document.head; return Head.prototype.attachAll.call(this); return this; };
     };
     Head.prototype = controls.control_prototype;
-    Head.template = function(it) { return '<head>' + (it.attributes.$text || '') + it.printControls() + '</head>'; };
+    Head.outer_template = function(it) { return '<head>' + (it.attributes.$text || '') + it.printControls() + '</head>'; };
     controls.typeRegister('head', Head);
     
     // Body
     function Body(parameters, attributes) {
-        controls.controlInitialize(this, 'controls.body', parameters, attributes, Body.template);
+        controls.controlInitialize(this, 'controls.body', parameters, attributes, Body.outer_template);
         this.attach    = function() { this.element = document.body; return this; };
         this.attachAll = function() { this.element = document.body; return Body.prototype.attachAll.call(this); return this; };
     };
     Body.prototype = controls.control_prototype;
-    Body.template = function(it) { return '<body' + it.printAttributes('-id') + '>' + (it.attributes.$text || '') + it.printControls() + '</body>'; };
+    Body.outer_template = function(it) { return '<body' + it.printAttributes('-id') + '>' + (it.attributes.$text || '') + it.printControls() + '</body>'; };
     controls.typeRegister('body', Body);
     
 
@@ -15175,7 +15183,7 @@ table,tbody,td,textarea,tfoot,th,thead,time,title,tr,u,ul,var,video,wbr'
     // layout.cellSet.class(...);
     // 
     function Layout(parameters, attributes) {
-        this.initialize('controls.layout', parameters, attributes, Layout.template);
+        this.initialize('controls.layout', parameters, attributes, Layout.outer_template);
         var clearfix = false; // use clearfix if float
         
         this.cellSet = new Container();
@@ -15212,7 +15220,7 @@ table,tbody,td,textarea,tfoot,th,thead,time,title,tr,u,ul,var,video,wbr'
         });
     };
     Layout.prototype = controls.control_prototype;
-    Layout.template = function(it) {
+    Layout.outer_template = function(it) {
         var out = '<div' + it.printAttributes() + '>',
             ctrls = it.controls, cell = '<div data-type="layout-item"' + it.cellSet.printAttributes("-id") + '>';
         for(var i = 0, c = ctrls.length; i < c; i++)
@@ -15223,7 +15231,7 @@ table,tbody,td,textarea,tfoot,th,thead,time,title,tr,u,ul,var,video,wbr'
 
     
     function List(parameters, attributes) {
-        this.initialize('controls.list', parameters, attributes, List.template);
+        this.initialize('controls.list', parameters, attributes, List.outer_template);
         
         this.itemSet = new Container();
         this.itemSet.listen_('attributes', this, function(event) {
@@ -15245,7 +15253,7 @@ table,tbody,td,textarea,tfoot,th,thead,time,title,tr,u,ul,var,video,wbr'
         });
     };
     List.prototype = controls.control_prototype;
-    List.template = function(it) {
+    List.outer_template = function(it) {
         var out ='<ul' + it.printAttributes() + '>',
             ctrls = it.controls, item = '<li' + it.itemSet.printAttributes("-id") + '>';
         for(var i = 0, c = ctrls.length; i < c; i++)
@@ -15258,7 +15266,7 @@ table,tbody,td,textarea,tfoot,th,thead,time,title,tr,u,ul,var,video,wbr'
     // Input
     // 
     function Input(parameters, attributes) {
-        this.initialize('controls.input', parameters, attributes, Input.template)
+        this.initialize('controls.input', parameters, attributes, Input.outer_template)
         .listen_('change', function() {
             this.attributes.value = this.element.value;
         }, true)
@@ -15277,7 +15285,7 @@ table,tbody,td,textarea,tfoot,th,thead,time,title,tr,u,ul,var,video,wbr'
         });
     };
     Input.prototype = controls.control_prototype;
-    Input.template = function(it) { return '<input' + it.printAttributes() + '>' + (it.attributes.$text || '') + '</input>'; };
+    Input.outer_template = function(it) { return '<input' + it.printAttributes() + '>' + (it.attributes.$text || '') + '</input>'; };
     controls.typeRegister('input', Input);
     
     
@@ -15287,7 +15295,7 @@ table,tbody,td,textarea,tfoot,th,thead,time,title,tr,u,ul,var,video,wbr'
     //  $data {DataArray}
     //
     function Select(parameters, attributes) {
-        this.initialize('controls.select', parameters, attributes, Select.template, Select.inner_template)
+        this.initialize('controls.select', parameters, attributes, Select.outer_template, Select.inner_template)
         .bind(attributes.hasOwnProperty('$data')
             ? controls.create('DataArray', {$data: attributes.$data})
             : controls.create('DataArray'))
@@ -15311,11 +15319,10 @@ table,tbody,td,textarea,tfoot,th,thead,time,title,tr,u,ul,var,video,wbr'
         });
     };
     Select.prototype = controls.control_prototype;
-    Select.template = function(it) { return '<select' + it.printAttributes() + '>' + (it.attributes.$text || '') + it.data.map(function(item){ return '<option value=' + item + '>' + item + '</option>'; }).join('') + '</select>'; };
+    Select.outer_template = function(it) { return '<select' + it.printAttributes() + '>' + (it.attributes.$text || '') + it.data.map(function(item){ return '<option value=' + item + '>' + item + '</option>'; }).join('') + '</select>'; };
     Select.inner_template = function(it) { return (it.attributes.$text || '') + it.data.map(function(item){ return '<option value=' + item + '>' + item + '</option>'; }).join(''); };
     controls.typeRegister('select', Select);
-
-
+    
     // exports
     if (typeof module !== 'undefined' && module.exports) module.exports = controls;
     if (typeof define === 'function' && define.amd) define(controls);
@@ -15736,14 +15743,11 @@ function initialize() {
         this.attributes.$text = '';
         
         var found_active = false;
-        for(var i = 0, c = body.length; i < c; i++)
-        {
+        for(var i = 0, c = body.length; i < c; i++) {
             var tabpage = body.controls[i];
-            if (tabpage.__type === 'bootstrap.TabPage')
-            {
+            if (tabpage.__type === 'bootstrap.TabPage') {
                 var tabheader = this.header.add('bootstrap.TabHeader', {$href:'#'+tabpage.id, $text:tabpage.Caption});
-                if (tabpage.parameters.active)
-                {
+                if (tabpage.parameters.active) {
                     found_active = true;
                     tabheader.class('active');
                     tabpage.class('active in');
@@ -15751,8 +15755,7 @@ function initialize() {
             }
         }
         
-        if (!found_active && header.length)
-        {
+        if (!found_active && header.length) {
             header.first.class('active');
             body.first.class('active in');
         }
