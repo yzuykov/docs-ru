@@ -20,8 +20,8 @@
         for(var i = 0, c = docs_repositories.length; i < c; i++) {
             var repo_path = docs_repositories[i];
             if (pathname.substr(0, repo_path.length) === repo_path) {
-                $DOC.appendScript(repo_path + '/404.js');
-                $DOC.appendScript(repo_path + '/user.js');
+                $DOC.appendScript(repo_path + '404.js');
+                $DOC.appendScript(repo_path + 'user.js');
                 hit = true;
             }
         }
