@@ -10863,7 +10863,7 @@ if (typeof jQuery === "undefined") { throw new Error("Bootstrap requires jQuery"
         'bootstrap.controls': require('./temp/bootstrap.controls.js')
     };
     
-    $ENV.controls.template = $ENV.dot.template;
+    $ENV.controls.template = $ENV.dot.template; // default template engine
     var extend = $ENV.controls.extend;
 
     // Set default options except highlight which has no default
@@ -10871,14 +10871,16 @@ if (typeof jQuery === "undefined") { throw new Error("Bootstrap requires jQuery"
       gfm: true, tables: true,  breaks: false,  pedantic: false,  sanitize: false,  smartLists: true,  smartypants: false,  langPrefix: 'lang-'
     });
 
-    // default control templates
-    $ENV.default_template = function(it) {
-        return '<div' + it.printAttributes() + '>' + $ENV.marked( (it.attributes.$text || "") + it.controls.map(function(control) { return control.wrappedHTML(); }).join("") ) + '</div>'; };
-    $ENV.default_inline_template = function(it) {
-        return '<span' + it.printAttributes() + '>' + $ENV.marked( (it.attributes.$text || "") + it.controls.map(function(control) { return control.wrappedHTML(); }).join("") ) + '</span>'; };
-    $ENV.default_inner_template = function(it) {
-        return $ENV.marked( (it.attributes.$text || "") + it.controls.map(function(control) { return control.wrappedHTML(); }).join("") ); };
-    
+    // get default control template
+    var templatesHash = {};
+    $ENV.getDefaultTemplate = function(tag) {
+        return templatesHash[tag || ''] || (templatesHash[tag || ''] = new Function('it',
+'var attributes = it.attributes, controls = it.controls, result = attributes.$text || "";\n\
+for(var i = 0, c = controls.length; i < c; i++)\n\
+ result += controls[i].wrappedHTML();\n\
+return ' + (tag ? ('"<' + tag + '" + it.printAttributes()+ ">" + $ENV.marked(result) + "</' + tag + '>";') : '$ENV.marked(result);')) );
+    };
+        
     // initialize $DOC
     
     var url_params = {};
@@ -11027,7 +11029,8 @@ if (typeof jQuery === "undefined") { throw new Error("Bootstrap requires jQuery"
         },
         // move section to placeholder location
         sectionPlaceholder: function(name, text_node) {
-            var sections = this.sections, exists = sections[name];
+            var sections = this.sections,
+                exists = sections[name];
             // move exists node
             if (exists) {
                 if (exists.__type) {
@@ -11136,6 +11139,23 @@ if (typeof jQuery === "undefined") { throw new Error("Bootstrap requires jQuery"
                 });
             }
             document.head.appendChild(script);
+        },
+        // {id1:url1, id2:url2 ...}
+        appendScripts: function(hash, callback) {
+            var started = 0, loaded = 0;
+            for(var prop in hash) {
+                started++;
+                this.appendScript(prop, hash[prop], function(state) {
+                    if (state > 0)
+                        loaded++;
+                    if (callback) {
+                        if (loaded >= started)
+                            callback(1);
+                        else if (state < 0)
+                            callback(-1);
+                    }
+                });
+            }
         },
         // get the url relative to the root
         getRootUrl: function(url) {
@@ -11283,7 +11303,7 @@ if (typeof jQuery === "undefined") { throw new Error("Bootstrap requires jQuery"
     
     $DOC.headTransformation = function() {
         
-        if ($DOC.auto = document.head.hasAttribute('generator'))
+        if ($DOC.mode = document.head.hasAttribute('generator'))
             return; // html
         else // mw document
             document.head.setAttribute('generator', 'markdown webdocs');
@@ -11427,7 +11447,7 @@ if (typeof jQuery === "undefined") { throw new Error("Bootstrap requires jQuery"
 
     if ($OPT.editable) {
         if ($OPT.edit_mode === 1 && window.top === window.self)
-            eval('!function(){"use strict";function e(){function e(){m=new c,$DOC.cbody.attachAll(),$DOC.appendCSS("document.editor.css",".tooltip, .popover { z-index:1200; }"),S=new r,$DOC.cbody.add(x=new i),x.createElement(),b=$DOC.cbody.add("div",{style:"overflow:hidden; border-radius:4px; position:fixed; top:20px;bottom:20px;right:20px; height:50%; width:50%; z-index:1101; border: silver solid 1px; background-color:white;"}),v=b.add("toolbar:div`clearfix",{style:"z-index:1111; background-color:#f0f0f0; line-height:32px; padding:0;"}).listen("element",function(e){e&&$(e).find("button,li,a").tooltip({placement:"bottom",container:"body",toggle:"tooltip"})}),v.add("save_group:bootstrap.BtnGroup`mar5",function(e){function t(){g.save(),e.download.element.href=(window.navigator.appName.indexOf("etscape")>0?"data:unknown":"data:application")+"/octet-stream;charset=utf-8,"+encodeURIComponent(g.buildHTML())}e.add("revert:bootstrap.Button",{$icon:"backward","data-original-title":"Revert"}).listen("click",function(){g.revert()});var n=m.fileName||"document.html";".html"!==n.toLowerCase().slice(-5)&&(n+=".html"),e.add("download:a`btn btn-default",\'<b class="glyphicon glyphicon-save"></b>\',{download:n,"data-original-title":"Download"}).listen("mousedown",t).listen("focus",t).listen("click",function(e){try{var t=new Blob([g.buildHTML()]);return window.navigator.msSaveOrOpenBlob(t,n),e.preventDefault(),void 0}catch(o){}}),e.add("save:bootstrap.SplitButton",{$icon:"floppy-disk","data-original-title":"Save"},function(e){e.button._class("disabled").listen("click",function(){g.write()}),e.toggle._class("disabled"),e.items.add("bootstrap.DropdownItem",{$icon:"resize-small"}).listen("click",function(){g.write(0)}).text(".html"),e.items.add("bootstrap.DropdownItem",{$icon:"resize-full"}).listen("click",function(){g.write(1)}).text(".html + .mw.html"),e.items.add("bootstrap.DropdownItem",{$icon:"share-alt"}).listen("click",function(){g.copy()}).text("Copy")}),v.add("cpanel:bootstrap.Button`hide fleft martop5 marbottom5 marleft5 padleft15 padright15",{$icon:"cog","data-original-title":"Control panel"}).listen("click",function(){})}),v.add("bootstrap.Button`mar5 fright",{$icon:"remove","data-original-title":"Close editor (Ctrl-F12)"}).listen("click",function(){var e=location.href,t=e.indexOf("?edit");0>t&&(t=e.indexOf("&edit")),t>=0&&(window.location=e.slice(0,t)+e.slice(t+5))});var e=v.add("bootstrap.Splitbutton`martop5 fright",{$icon:"fullscreen"});e.button.listen("click",function(){g.mode=g.mode?0:1});var l=e.items;l.add("bootstrap.DropdownItem",{$icon:"chevron-left"}).listen("click",function(){g.position=1}),l.add("bootstrap.DropdownItem",{$icon:"chevron-right"}).listen("click",function(){g.position=0}),l.add("bootstrap.DropdownItem",{$icon:"chevron-up"}).listen("click",function(){g.position=2}),l.add("bootstrap.DropdownItem",{$icon:"chevron-down"}).listen("click",function(){g.position=3}),v.add("export_group:bootstrap.BtnGroup`mar5",function(e){e.add("github:bootstrap.Button",{"data-original-title":"Publish"})._icon("export")._text("GitHub").listen("click",function(){k.getSettings(!1,function(e){e&&k.publish()})})}),v.add(w=new o),b.add(T=new n),b.add(y=new t),b.createElement(),g=new a,k=new s,setInterval(function(){for(var e=0,t=O.length;t>e;e++)O[e]()},25),setInterval(function(){for(var e=0,t=N.length;t>e;e++)N[e]()},1e3)}function t(){var e=controls.create("div",{"class":"pad20"}),t=!0;Object.defineProperty(e,"visible",{get:function(){return t},set:function(n){t=n,e.element&&(e.element.style.display=t?"block":"none")}}),e.listen("element",function(e){e&&(e.style.display=t?"block":"none")});var n=e.add("bootstrap.FormGroup");return n.add("bootstrap.ControlLabel",{$text:"Title:"}),n.add("title_edit:bootstrap.ControlInput",{value:""}).listen("change",function(){S.title=n.title_edit.value}),S.listen(function(){S.title!==n.title_edit.value&&(n.title_edit.value=S.title)}),e.save=function(){},e}function n(){function e(){if(t.mode){var e=t._element;e&&e.value!==o&&(t.modified=25,o=e.value)}}var t=controls.create("textarea",{"class":"form-control",style:"font-family:Consolas,Lucida Console,Liberation Mono,DejaVu Sans Mono,Bitstream Vera Sans Mono,Courier New,monospace; display:none; border:0; border-radius:0; border-left:#f9f9f9 solid 6px; box-shadow:none; width:100%; height:100%; resize:none; "});t.code_edit_resize=function(){var e=t.element;e&&(e.style.height=$(b.element).height()-$(v.element).height()+"px")},$(window).on("resize",t.code_edit_resize),N.push(t.code_edit_resize);var n=0;Object.defineProperty(t,"mode",{get:function(){return n},set:function(e){e>2&&(e=2),e!==n&&(n=e,this.element&&(t.element.style.display=n?"block":"none"),t.code_edit_resize())}});var o;return t.listen("element",function(e){e&&(e.value=o),t.code_edit_resize()}),Object.defineProperty(t,"text",{get:function(){return this.element?this.element.value:o},set:function(e){o=e||"",this.element&&(this.element.value=o),this.modified=0}}),t.save=function(){e(),this.modified&&(this.modified=0,this.raise("text",o))},t.listen("change",e,!0),O.push(function(){e(),t.modified&&--t.modified<2&&(t.modified=0,t.raise("text",o))}),t}function o(){function e(){o.selectedIndex=o.controls.indexOf(this)}var t,n=-1,o=v.add("tabs_header:bootstrap.TabPanelHeader");return o.bind(controls.create("dataarray")),o.data.push({isoptions:!0,text:"",hint:"Page options",icon:"list-alt"},{ishtml:!0,text:"HTML",hint:"Edit as HTML"}),o.setTabs=function(e){var t=w.data;e.length+2<t.length&&t.splice(1,t.length-e.length-2);for(var n=t.length,o=e.length+2;o>n;n++)t.splice(1,0,{});for(var n=1,i=t.length-1;i>n;n++)t[n].text=e[n-1];t.raise()},o.listen("data",function(){for(var n=o.controls,i=this.data,r=n.length,a=i.length;a>r;r++)o.add("bootstrap.TabHeader").listen("click",e);for(var r=n.length-1,a=i.length;r>=a;r--){var s=n[r];s.deleteAll(),s.removeListener("click",e),o.remove(s)}for(var r=0,a=i.length;a>r;r++){var l=i[r];l.id=n[r].id;var s=n[r];s.attributes["data-original-title"]=l.hint,s.attributes.$icon=l.icon,s.text(l.text),l===t?s.class("active"):s.class(null,"active")}o.checkSelection(),o.element&&o.refresh()}),Object.defineProperty(o,"selectedIndex",{get:function(){return n},set:function(e){this.selected=e}}),Object.defineProperty(o,"selected",{get:function(){return t},set:function(e){var o=this.data;if("string"!=typeof e){if("number"==typeof e)return e>=0&&e<o.length&&e!==n?this.selected=o[e]:-1===e&&(this.selected=void 0),void 0;var i=o.indexOf(e);if(i>=0){var r=o[i];r!==t&&t&&(this.lastSelected=t)}if(e!==t||i!==n){for(var a=this.controls,s=0,l=a.length;l>s;s++)s===i?a[s].class("active"):a[s].class(null,"active");this.raise("selected",t=e?e:void 0,n=i)}}else{for(var s=0,l=o.length;l>s;s++){var r=o[s];if(r.id===e)return this.selected=r,void 0}for(var s=0,l=o.length;l>s;s++){var r=o[s];if(r.text===e)return this.selected=r,void 0}}}}),o.checkSelection=function(){var e=this.data;if(e.length){var n=e.indexOf(t);0>n&&(this.selected=this.lastSelected),this.selected||(this.selected=0)}else this.selected=-1},o}function i(){function e(e){var t=document.createElement("textarea");return t.innerHTML=e,t.value}var t,n,o=location.href;return o=o.slice(0,o.length-location.hash.length),o+=o.indexOf("?")>0?"&preview":"?preview",x=controls.create("iframe",{sandbox:"",src:o,style:"position:fixed; left:0; top:0; width:100%; height:100%; z-index:1100; border:none;"}),x.updateInnerHtml=function(e,o){t=e,n=o;var i=this.element,r=this.$DOC;if(i&&r){var a=i.contentDocument,s=i.contentWindow,l=a.getElementsByTagName("html")[0];l&&(r.initialize(),l.innerHTML=e,r.headTransformation(),s.$OPT.userjs?r.loadUserJS():setTimeout(function(){r.finalTransformation()},0))}},x.reload=function(){this.element&&this.deleteAll(),this.createElement()},x.listen("load",function(){setTimeout(function(){try{this.element.contentWindow.location.pathname!==window.location.pathname&&this.reload()}catch(e){this.reload()}this.$DOC=this.element&&x.element.contentWindow.$DOC,void 0!==t&&this.updateInnerHtml(t,n)}.bind(x),0)}),x.updateNamedSection=function(e,n,o){t=o;var i=this.$DOC,r=i.sections[e];"object"==typeof r&&r.source_node&&i.processTextNode(r.source_node,e+"\\n"+n)},x.grabHTML=function(){for(var t=this.element&&this.element.contentDocument,n=this.$DOC,o=t.documentElement.cloneNode(),i=t.createNodeIterator(o,128,null,!1),r=i.nextNode();r;)r.parentNode.removeChild(r),r=i.nextNode();var a="<!DOCTYPE html>"+o.outerHTML.replace(/<noscript>([\\s\\S]*?)<\\/noscript>/g,function(t,n){return"<noscript>"+e(n)+"</noscript>"}),s=a.lastIndexOf("</body>"),l=\'<script>$DOC.onload(function(){ if ($OPT.edit_mode) return;($DOC.chead = JSON.parse(unescape("\'+escape(JSON.stringify(n.chead))+\'"), controls.reviverJSON)).attachAll();($DOC.cbody = JSON.parse(unescape("\'+escape(JSON.stringify(n.cbody))+\'"), controls.reviverJSON)).attachAll();$DOC.vars = JSON.parse(unescape("\'+escape(JSON.stringify(n.vars))+\'"), controls.reviverJSON);for(var prop in $DOC.vars) { var v = $DOC.vars[prop]; if (v.__type) v.attachAll(); }});</script>\';return a.slice(0,s)+l+a.slice(s)},x}function r(){function e(){return(this.opentag||"")+(this.attributes.$text||"")+this.controls.map(function(e){return e.outerHTML()}).join("")+(this.closetag||"")}var t,n,o,i;Object.defineProperty(this,"title",{get:function(){return o},set:function(r){if(o=r,!i){if(!n)return;i=n.add("div"),i.template(e)}i.controls.length=0,i.opentag="<title>"+r+"</title>",i.closetag="",t=this.buildHTML(),this.raise()}}),Object.defineProperty(this,"html",{get:function(){return t},set:function(r){if(r!==t){t=r;var a={},s={},l=document.implementation.createHTMLDocument(""),c=l.documentElement,d=/<html[\\s\\S]*?>([\\s\\S]*)<\\/html>/im.exec(t);d&&(c.innerHTML=d[1]);for(var u=controls.create("div"),h=[],f=[],p=l.createNodeIterator(c,65535,null,!1),m=p.nextNode();m;){var g=m===c?u:controls.create("div");g.template(e),h.push(m),f.push(g);var b=h.indexOf(m.parentNode);if(b>=0&&f[b].add(g),8===m.nodeType){var v=m.nodeValue,w=v[0];if(g.opentag="<!--"+m.nodeValue+"-->","%"===w);else if("!"===w);else{var y=v.indexOf(" "),T=v.indexOf("\\n"),S=v.indexOf("->");if(0>y&&0>T&&0>S);else if(0>y&&S>0);else if(T>0&&(0>y||y>T)&&(y=T),y>0&&128>y){var x=v.slice(0,y);a[x]=v.slice(y+1),s[x]=g}}}else if(m===c){var d=/(<html[\\s\\S]*?>)[\\s\\S]*?<head/im.exec(t);g.opentag="<!DOCTYPE html>\\n"+(d?d[1]:"<html>")+"\\n",g.closetag="\\n</html>"}else{var k=m.outerHTML,O=m.innerHTML;if(O){var N=k.lastIndexOf(O);0>N?g.opentag=k:(g.opentag=k.slice(0,N),g.closetag=k.slice(N+O.length))}else g.opentag=k?k:m.nodeValue}m=p.nextNode()}var C=l.getElementsByTagName("head")[0];n=C&&f[h.indexOf(C)];var E=l.getElementsByTagName("title")[0];E?(o=E.textContent,i=f[h.indexOf(E)]):(o="",i=null),this.chtml=u,this.sections=a,this.seccontrols=s,this.raise()}}}),this.updateNamedSection=function(e,n){var o=this.seccontrols[e];o&&(this.sections[e]=n,o.opentag="<!--"+e+"\\n"+n+"-->\\n",t=this.chtml.outerHTML())},this.buildHTML=function(){return this.chtml.outerHTML()}}function a(){function e(e,t,n,o,i,r,a,s,l,c,d,u){if(x.element){var h=x.element.style;h.top=e,h.right=t,h.bottom=n,h.left=o,h.width=i,h.height=r,h=b.element.style,h.top=a,h.right=s,h.bottom=l,h.left=c,h.width=d,h.height=u}}function t(){if(i)switch(r){case 1:e("0","0","0","0","100%","100%","auto","auto","20px","20px","50%","50%");break;case 2:e("0","0","0","0","100%","100%","20px","auto","auto","20px","50%","50%");break;case 3:e("0","0","0","0","100%","100%","auto","20px","20px","auto","50%","50%");break;default:e("0","0","0","0","100%","100%","20px","20px","auto","auto","50%","50%")}else switch(r){case 1:e("0","0","0","auto","50%","100%","0","auto","0","0","50%","100%");break;case 2:e("auto","0","0","0","100%","50%","0","0","auto","0","100%","50%");break;case 3:e("0","0","auto","0","100%","50%","auto","0","0","0","100%","50%");break;default:e("0","auto","0","0","50%","100%","0","0","0","auto","50%","100%")}T.code_edit_resize()}var n=this;S.listen(function(){n.edit_html=S.html,w.setTabs(Object.keys(S.sections)),x.updateInnerHtml(S.chtml.innerHTML(),Object.keys(S.sections))});var o;Object.defineProperty(this,"edit_html",{get:function(){return o},set:function(e){e!==o&&(o=e,S.html=o)}}),this.checkEdits=function(){var e=w.selected;e&&e.isoptions?y.save():e&&T.save()},w.listen("selected",this,function(){this.checkEdits(),this.updateCodeEdit(),this.modified=5,y.visible=0===w.selectedIndex}),this.updateCodeEdit=function(){var e=w.selected;switch(T.mode=!e||e.isoptions?0:e.ishtml?1:2,T.mode){case 1:T.text=n.edit_html;break;case 2:var t=w.selected;t?(T.section=t.text,T.text=S.sections[t.text]):T.text="";break;default:T.text=""}},T.listen("text",function(e){switch(T.mode){case 1:n.edit_html=e,n.modified=25;break;case 2:n.updateNamedSection(T.section,T.text),n.modified=25}}),this.updateNamedSection=function(e,t){S.updateNamedSection(e,t),o=S.buildHTML(),x.updateNamedSection(e,t,S.chtml.innerHTML())},this.save=function(){this.checkEdits(),f.selected=w.selected&&w.selected.text,f.editMw=this.edit_html,f.html===m.mwHtml&&(f.delete=!0),f.raise(),this.modified=0},this.write=function(){this.save(),arguments.length&&(m.fileMode=arguments[0]),m.fileMode?m.write(n.buildHTML(),x.grabHTML())&&h.onReady(function(){location.reload()}):m.write(n.buildHTML())&&h.onReady(function(){location.reload()})},this.copy=function(){this.save();var e=window.prompt("Enter file name",m.fileName);if(e&&e!==m.fileName)if(m.fileMode){var t=m.writeTo(e,n.buildHTML(),x.grabHTML());t&&h.onReady(function(){window.location=t})}else{var t=m.writeTo(e,n.buildHTML());t&&h.onReady(function(){window.location=t})}},this.revert=function(){this.edit_html=m.mwHtml,this.updateCodeEdit(),this.modified=2,setTimeout(function(){window.location.reload()},300)},this.buildHTML=function(){return T.save(),S.buildHTML()};var i=0,r=0,a=600,s=500;if(Object.defineProperty(this,"mode",{get:function(){return i},set:function(e){i=e,t(),n.saveLayout()}}),Object.defineProperty(this,"position",{get:function(){return r},set:function(e){r=e,t(),n.saveLayout()}}),this.saveLayout=function(){"undefined"!=typeof localStorage&&localStorage.setItem("editor layout",[i,r,a,s].join(";"))},"undefined"!=typeof localStorage){try{var l=localStorage.getItem("editor layout").split(";");i=parseInt(l[0]),r=parseInt(l[1]),a=parseInt(l[2]),s=parseInt(l[3])}catch(c){}t()}var d=localStorage&&localStorage.getItem("default selected page");w.lastSelected=f.selected||d||w.data[0],this.edit_html=f.editMw||m.mwHtml||"",w.checkSelection(),m.writable&&(v.save_group.save.button.class(null,"disabled"),v.save_group.save.toggle.class(null,"disabled")),O.push(function(){this.modified&&--this.modified<2&&(this.modified=0,this.save())}.bind(this))}function s(){function e(){var e=controls.create("bootstrap.modal",{style:"z-index:1200;",disabled:!0});e.close=e.header.add("button`close","&times;",{type:"button"}),e.header.add("h4`modal-title","Publish on GitHub");var t=e.body.add("form:bootstrap.Form");return t._add("bootstrap.FormGroup",function(t){t.add("bootstrap.ControlLabel","Username:"),e.user=t.add("bootstrap.ControlInput")})._add("bootstrap.FormGroup",function(t){t._add("bootstrap.ControlLabel","Repository:"),e.repo=t.add("bootstrap.ControlInput")})._add("bootstrap.FormGroup",function(t){t._add("bootstrap.ControlLabel","Branch:"),e.branch=t.add("bootstrap.ControlInput")})._add("bootstrap.FormGroup",function(t){t._add("bootstrap.ControlLabel","Path in repository:"),e.path=t.add("bootstrap.ControlInput")})._add("bootstrap.FormGroup",function(t){t._add("bootstrap.ControlLabel","Personal access token or password:"),e.apikey=t.add("bootstrap.ControlInput")}),e.OK=e.footer.add("bootstrap.Button#primary","OK"),e.Cancel=e.footer.add("bootstrap.Button","Cancel"),e.modeCheckbox=t.add("bootstrap.FormGroup").add("bootstrap.ControlCheckbox`martop20",{$text:"Compile to html"}),e.ref0=t.add("bootstrap.FormGroup").add("a`martop20",{target:"repo"}),setInterval(function(){var t=e.user.value,n=e.repo.value;if(t&&n){var o="https://github.com/"+t+"/"+n;e.ref0._text(o)._attr("href",o)}},977),e}this.getSettings=function(t,n){var o=p.github||(p.github={}),i=o.user,r=o.repo,a=o.branch,s=l({fileName:f.github_path}),c=sessionStorage.getItem("github-apikey")||"";s.fileName||(s=l({fileName:decodeURIComponent(location.pathname).split("/").slice(2).join("/")})),i=i||location.host.split(".")[0],r=r||decodeURIComponent(location.pathname).split("/")[1],a=a||"gh-pages";var d=$DOC.cbody.github_modal;d||(d=$DOC.cbody.github_modal=$DOC.cbody.add(e()),d.createElement(),d.close.listen("click",function(){$(d.element).modal("hide"),n&&n(!1)}),d.OK.listen("click",function(){var e=p.github||(p.github={});e.user=d.user.value||"",sessionStorage.setItem("github-apikey",d.apikey.value||""),e.repo=d.repo.value||"",e.branch=d.branch.value||"gh-pages",p.raise(),f.github_path=d.path.value||"",f.raise(),d.callback&&d.callback(e.user&&e.repo&&e.branch&&f.github_path&&d.apikey.value)}),d.Cancel.listen("click",function(){$(d.element).modal("hide"),d.callback&&d.callback(!1)})),d.user.value=i,d.apikey.value=c,d.repo.value=r,d.branch.value=a,d.path.value=s.fileName,d.modeCheckbox.checked=m.fileMode,d.callback=n,$(d.element).modal("show")},this.publish=function(){var e=p.github||(p.github={}),t=new window.github_api({username:e.user,password:sessionStorage.getItem("github-apikey"),auth:"basic"}),n=t.getRepo(e.user,e.repo),o=g.buildHTML(),i=l({fileName:f.github_path}),r=$DOC.cbody.github_modal;if(r.modeCheckbox.checked){var a=x.grabHTML();n.write(e.branch,i.mwFileName,o,"---",function(t){t?console.log(t):setTimeout(function(){n.write(e.branch,i.fileName,a,"---",function(t){t?setTimeout(function(){n.write(e.branch,i.fileName,a,"---",function(e){e?console.log(e):$(r&&r.element).modal("hide")})},3e3):$(r&&r.element).modal("hide")})},3e3)})}else n.write(e.branch,i.fileName,o,"---",function(t){t?console.log(t):setTimeout(function(){n.removeFile(e.branch,i.mwFileName,function(t){t&&404!==t?setTimeout(function(){n.removeFile(e.branch,i.mwFileName,function(e){e&&404!==e?console.log(e):$(r&&r.element).modal("hide")})},3e3):$(r&&r.element).modal("hide")})},3e3)})}}function l(e){var t=e.fileName,n=e.mwFileName;return t?".html"!==t.slice(-5)?(e.fileName+=".html",l(e)):(".mw.html"===t.slice(-8)?(t=t.slice(0,t.length-8),n=t+".mw.html",t+=".html"):n=t.slice(0,t.length-5)+".mw.html",e.fileName=t,e.mwFileName=n,e):e}function c(){this.environment=0,this.writable=0,this.errorState=-1,this.mwHtml="",this.fileMode=0;var e=location.url,t=e.lastIndexOf("/"),n=e.lastIndexOf("\\\\");t=n>t?n:t,this.path=e.slice(0,t+1),this.fileName=e.slice(t+1),l(this);var o=this;if("undefined"!=typeof nwDispatcher&&"file:"===location.protocol){this.environment=1,this.writable=!0;var i=require("fs"),r=this.path.slice(8)+this.mwFileName,a=this.path.slice(8)+this.fileName;try{i.existsSync(r)?(this.fileMode=1,this.mwHtml=i.readFileSync(r).toString().replace(/\\r/g,"")):this.mwHtml=i.readFileSync(a).toString().replace(/\\r/g,""),this.errorState=0}catch(s){this.errorState=1}this.write=function(e,t){if(this.writable&&!this.errorState)try{if(this.fileMode)i.writeFileSync(r,e),i.writeFileSync(a,t);else{i.writeFileSync(a,e);try{i.unlinkSync(r)}catch(n){}}return a}catch(n){console.log(n)}},this.writeTo=function(e,t,n){if(this.writable&&!this.errorState)try{var o=l({fileName:e}),r=this.path.slice(8)+o.mwFileName,a=this.path.slice(8)+o.fileName;if(this.fileMode)i.writeFileSync(r,t),i.writeFileSync(a,n);else{i.writeFileSync(a,t);try{i.unlinkSync(r)}catch(s){}}return a}catch(s){console.log(s)}}}else{"file:"===location.protocol&&(this.errorState=1);var c=this;$.ajax({url:o.path+o.mwFileName,type:"GET",dataType:"html",async:0}).done(function(e){c.mwHtml=e.replace(/\\r/g,""),c.fileMode=1}).fail(function(){$.ajax({url:o.path+o.fileName,type:"GET",dataType:"html",async:0}).done(function(e){c.mwHtml=e.replace(/\\r/g,"")}).fail(function(){this.errorState=1})})}}function d(e,t){function n(){u(\'<h4><b class="glyphicon glyphicon-warning-sign">&nbsp;</b>Editor loading error</h4>Your browser does not supported and can not be used to edit documents. Please use Firefox, Chrome, Opera or Safari.\')}var o,i,r=this;this.errorState=-1;for(var a in e){var s=e[a];s.listen(function(){this.modified=!0})}if(O.push(function(){for(var t in e){var n=e[t];n.modified&&r.write()}}),window.indexedDB){try{var l=window.indexedDB.open("markdown-webdocs.editor.db.1",1);l.onsuccess=function(e){o=e.target.result,t()},l.onupgradeneeded=function(n){o=n.target.result;for(var i in e)o.createObjectStore(i,{keyPath:"key"});t()},l.onerror=function(e){u(\'<h4><b class="glyphicon glyphicon-warning-sign">&nbsp;</b>Editor loading error</h4>Database error. Please try using another browser for editing the document.\'),console.log(e)},l.onblocked=function(e){u(\'<h4><b class="glyphicon glyphicon-warning-sign">&nbsp;</b>Editor loading error</h4>Database blocked\'),console.log(e)}}catch(c){return n(),void 0}r.restore=function(t){try{var n=o.transaction(Object.keys(e),"readonly"),i=0,a=0;for(var s in e){var l=e[s],c=n.objectStore(s).get(l.key);i++,c.onsuccess=function(n){l=e[n.target.source.name],l.fromJSON(n.target.result),l.modified=!1,a++,a===i&&(r.errorState=0,t&&t())},c.onerror=function(e){console.log(e),this.errorState=1}}}catch(d){console.log(d),this.errorState=1}},r.write=function(){if(!this.errorState)try{var t=o.transaction(Object.keys(e),"readwrite");for(var n in e){var i=e[n];if(i.modified){var r=t.objectStore(n);if(i.delete)delete i.delete,r.delete(i.key);else{var a=r.put(i.toJSON());a.onsuccess=function(){},a.onerror=function(e){console.log(e)}}i.modified=!1,i.selected&&localStorage&&localStorage.setItem("default selected page",i.selected)}}}catch(s){console.log(s)}}}else{if(!window.openDatabase)return n(),void 0;try{var i=window.openDatabase("markdown-webdocs.editor.db.1","1.0","markdow webdocs editor",0);if(!i)return n(),void 0;i.transaction(function(t){for(var o in e)t.executeSql("CREATE TABLE IF NOT EXISTS "+o+" (key TEXT NOT NULL PRIMARY KEY, value TEXT)",[],null,n)},n,t)}catch(c){return n(),void 0}r.restore=function(t){try{i.transaction(function(n){var o=0,i=0;for(var a in e){var s=e[a];n.executeSql("SELECT value FROM "+a+" WHERE key = ? LIMIT 1",[s.key],function(e,n){if(n.rows.length){try{s.fromJSON(JSON.parse(n.rows.item(0).value))}catch(a){s.fromJSON({})}s.modified=!1}i++,i===o&&(r.errorState=0,t&&t())},function(e){console.log(e)})}},function(){console.log(event)},function(){})}catch(n){}},r.write=function(){if(!errorState)try{i.transaction(function(t){for(var n in e){var o=e[n];o.delete?(delete o.delete,t.executeSql("DELETE FROM "+n+" WHERE key = ?",[o.key],function(){},function(e){console.log(e)})):t.executeSql("INSERT OR REPLACE INTO "+n+" (key, value) VALUES (?, ?)",[o.key,JSON.stringify(o)],function(){},function(e){console.log(e)})}},function(){console.log(event)},function(){}),modified=!1}catch(t){console.log(t)}}}r.onReady=function(e){setTimeout(function(){e()},400)}}function u(e){$DOC.cbody.attachAll().add("div",{style:"position:fixed; left:0; top:0; width:100%; height:100%; background-color:white; opacity:0.9; z-index:1201;"}).createElement(),$DOC.cbody.add("alert:div.mar20 alert alert-warning col1-sm-offset-3 col-sm-6",{$text:e,style:"position:fixed; left:25px; top:25px; z-index:1202;"}).createElement()}var h,f,p,m,g,b,v,w,y,T,S,x,k,O=[],N=[];$(window).load(function(){location.url=decodeURI(location.href.split("?")[0]),f=controls.create("DataObject"),f.key=location.url,f.fromJSON=function(e){this.selected=e&&e.selected,this.sourceMw=e&&e.sourceMw,this.editMw=e&&e.editMw,this.history=e&&e.history,this.github_path=e&&e.github_path,Array.isArray(this.history)||(this.history=[])},f.toJSON=function(){return{key:this.key,selected:this.selected,sourceMw:this.sourceMw,editMw:this.editMw,history:this.history,github_path:this.github_path}},p=controls.create("DataObject");var t=document.createElement("script");t.setAttribute("src",$DOC.root),p.key=t.src.split("?")[0],p.fromJSON=function(e){this.github=e&&e.github},p.toJSON=function(){return{key:this.key,github:this.github}},h=new d({drafts:f,settings:p},function(){h.restore(e)})}),r.prototype=controls.create("DataObject")}window.top!==window.self||window["mw-document-editor"]||(window["mw-document-editor"]=!0,"undefined"!=typeof $ENV?e():(window.defercqueue||(window.defercqueue=[]),window.defercqueue.push(e)))}(),function(){function e(e){var t,n,o,i,r,a,s,l="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=",c="",d=0;do t=e.charCodeAt(d++),n=e.charCodeAt(d++),o=e.charCodeAt(d++),i=t>>2,r=(3&t)<<4|n>>4,a=(15&n)<<2|o>>6,s=63&o,isNaN(n)?a=s=64:isNaN(o)&&(s=64),c=c+l.charAt(i)+l.charAt(r)+l.charAt(a)+l.charAt(s);while(d<e.length);return c}var t="https://api.github.com",n=function(o){function i(n,i,r,a,s,l){function c(){var e=i.indexOf("//")>=0?i:t+i;return e+(/\\?/.test(e)?"&":"?")+(new Date).getTime()}var d=new XMLHttpRequest;return s||(d.dataType="json"),d.open(n,c(),!l),l||(d.onreadystatechange=function(){4===this.readyState&&(this.status>=200&&this.status<300||304===this.status?a(null,s?this.responseText:this.responseText?JSON.parse(this.responseText):!0,this):a({path:i,request:this,error:this.status}))}),d.setRequestHeader("Accept","application/vnd.github.raw+json"),d.setRequestHeader("Content-Type","application/json;charset=UTF-8"),(o.token||o.username&&o.password)&&d.setRequestHeader("Authorization",o.token?"token "+o.token:"Basic "+e(o.username+":"+o.password)),r?d.send(JSON.stringify(r)):d.send(),l?d.response:void 0}function r(e,t){var n=[];!function o(){i("GET",e,null,function(i,r,a){if(i)return t(i);n.push.apply(n,r);var s=(a.getResponseHeader("link")||"").split(/\\s*,\\s*/g),l=_.find(s,function(e){return/rel="next"/.test(e)});l&&(l=(/<(.*)>/.exec(l)||[])[1]),l?(e=l,o()):t(i,n)})}()}n.User=function(){this.repos=function(e){r("/user/repos?type=all&per_page=1000&sort=updated",function(t,n){e(t,n)})},this.userRepos=function(e,t){r("/users/"+e+"/repos?type=all&per_page=1000&sort=updated",function(e,n){t(e,n)})},this.orgRepos=function(e,t){r("/orgs/"+e+"/repos?type=all&&page_num=1000&sort=updated&direction=desc",function(e,n){t(e,n)})}},n.Repository=function(e){function t(e,t){return e===s.branch&&s.sha?t(null,s.sha):(r.getRef("heads/"+e,function(n,o){s.branch=e,s.sha=o,t(n,o)}),void 0)}var n=e.name,o=e.user,r=this,a="/repos/"+o+"/"+n,s={branch:null,sha:null};this.getRef=function(e,t){i("GET",a+"/git/refs/"+e,null,function(e,n){return e?t(e):(t(null,n.object.sha),void 0)})},this.createRef=function(e,t){i("POST",a+"/git/refs",e,t)},this.deleteRef=function(t,n){i("DELETE",a+"/git/refs/"+t,e,n)},this.compare=function(e,t,n){i("GET",a+"/compare/"+e+"..."+t,null,function(e,t){return e?n(e):(n(null,t),void 0)})},this.listBranches=function(e){i("GET",a+"/git/refs/heads",null,function(t,n){return t?e(t):(e(null,_.map(n,function(e){return _.last(e.ref.split("/"))})),void 0)})},this.getBlob=function(e,t){i("GET",a+"/git/blobs/"+e,null,t,"raw")},this.getSha=function(e,t,n){return""===t?r.getRef("heads/"+e,n):(r.getTree(e+"?recursive=true",function(e,o){if(e)return n(e);var i=_.select(o,function(e){return e.path===t})[0];n(null,i?i.sha:null)}),void 0)},this.getTree=function(e,t){i("GET",a+"/git/trees/"+e,null,function(e,n){return e?t(e):(t(null,n.tree),void 0)})},this.postBlob=function(e,t){"string"==typeof e&&(e={content:e,encoding:"utf-8"}),i("POST",a+"/git/blobs",e,function(e,n){return e?t(e):(t(null,n.sha),void 0)})},this.updateTree=function(e,t,n,o){var r={base_tree:e,tree:[{path:t,mode:"100644",type:"blob",sha:n}]};i("POST",a+"/git/trees",r,function(e,t){return e?o(e):(o(null,t.sha),void 0)})},this.postTree=function(e,t){i("POST",a+"/git/trees",{tree:e},function(e,n){return e?t(e):(t(null,n.sha),void 0)})},this.commit=function(t,n,o,r){var l={message:o,author:{name:e.username},parents:[t],tree:n};i("POST",a+"/git/commits",l,function(e,t){return s.sha=t&&t.sha,e?r(e):(r(null,t&&t.sha),void 0)})},this.updateHead=function(e,t,n){i("PATCH",a+"/git/refs/heads/"+e,{sha:t},function(e){n(e)})},this.show=function(e){i("GET",a,null,e)},this.contents=function(e,t,n,o){return i("GET",a+"/contents?ref="+e+(t?"&path="+t:""),null,n,"raw",o)},this.fork=function(e){i("POST",a+"/forks",null,e)},this.branch=function(e,t,n){2===arguments.length&&"function"==typeof arguments[1]&&(n=t,t=e,e="master"),this.getRef("heads/"+e,function(e,o){return e&&n?n(e):(r.createRef({ref:"refs/heads/"+t,sha:o},n),void 0)})},this.createPullRequest=function(e,t){i("POST",a+"/pulls",e,t)},this.listHooks=function(e){i("GET",a+"/hooks",null,e)},this.getHook=function(e,t){i("GET",a+"/hooks/"+e,null,t)},this.createHook=function(e,t){i("POST",a+"/hooks",e,t)},this.editHook=function(e,t,n){i("PATCH",a+"/hooks/"+e,t,n)},this.deleteHook=function(e,t){i("DELETE",a+"/hooks/"+e,null,t)},this.read=function(e,t,n){r.getSha(e,t,function(e,t){return t?(r.getBlob(t,function(e,o){n(e,o,t)}),void 0):n("not found",null)})},this.remove=function(e,n,o){t(e,function(t,i){r.getTree(i+"?recursive=true",function(t,a){var s=a.filter(function(e){return e.path!==n});s.forEach(function(e){"tree"===e.type&&delete e.sha}),a.length===s.length&&o(404),r.postTree(s,function(t,a){r.commit(i,a,"Deleted "+n,function(t,n){r.updateHead(e,n,function(e){o(e)})})})})})},this.removeFile=function(e,n,o){t(e,function(t,s){r.getTree(s+"?recursive=true",function(t,r){r&&r.some(function(t){if(t.path===n&&"blob"===t.type){var r={path:t.path,message:"---",sha:t.sha,branch:e};return i("DELETE",a+"/contents/"+n,r,function(e,t){return e?o(e):(o(null,t.sha),void 0)}),!0}})||o(null)})})},this.move=function(e,n,o,i){t(e,function(t,a){r.getTree(a+"?recursive=true",function(t,s){_.each(s,function(e){e.path===n&&(e.path=o),"tree"===e.type&&delete e.sha}),r.postTree(s,function(t,o){r.commit(a,o,"Deleted "+n,function(t,n){r.updateHead(e,n,function(e){i(e)})})})})})},this.write=function(e,n,o,i,a){t(e,function(t,s){return t?a(t):(r.postBlob(o,function(t,o){return t?a(t):(r.updateTree(s,n,o,function(t,n){return t?a(t):(r.commit(s,n,i,function(t,n){return t?a(t):(r.updateHead(e,n,a),void 0)}),void 0)}),void 0)}),void 0)})},this.getCommits=function(e,t){e=e||{};var n=a+"/commits",o=[];if(e.sha&&o.push("sha="+encodeURIComponent(e.sha)),e.path&&o.push("path="+encodeURIComponent(e.path)),e.since){var r=e.since;r.constructor===Date&&(r=r.toISOString()),o.push("since="+encodeURIComponent(r))}if(e.until){var s=e.until;s.constructor===Date&&(s=s.toISOString()),o.push("until="+encodeURIComponent(s))}o.length>0&&(n+="?"+o.join("&")),i("GET",n,null,t)}},this.getRepo=function(e,t){return new n.Repository({user:e,name:t})},this.getUser=function(){return new n.User}};window.github_api=n}();');
+            eval('!function(){"use strict";function t(){function t(){m=new c,$DOC.cbody.attachAll(),$DOC.appendCSS("document.editor.css",".tooltip, .popover { z-index:1200; }"),S=new r,$DOC.cbody.add(x=new i),x.createElement(),g=$DOC.cbody.add("div",{style:"overflow:hidden; border-radius:4px; position:fixed; top:20px;bottom:20px;right:20px; height:50%; width:50%; z-index:1101; border: silver solid 1px; background-color:white;"}),v=g.add("toolbar:div`clearfix",{style:"z-index:1111; background-color:#f0f0f0; line-height:32px; padding:0;"}).listen("element",function(t){t&&$(t).find("button,li,a").tooltip({placement:"bottom",container:"body",toggle:"tooltip"})}),v.add("save_group:bootstrap.BtnGroup`mar5",function(t){function e(){b.save(),t.download.element.href=(window.navigator.appName.indexOf("etscape")>0?"data:unknown":"data:application")+"/octet-stream;charset=utf-8,"+encodeURIComponent(b.buildHTML())}t.add("revert:bootstrap.Button",{$icon:"backward","data-original-title":"Revert"}).listen("click",function(){b.revert()});var n=m.fileName||"document.html";".html"!==n.toLowerCase().slice(-5)&&(n+=".html"),t.add("download:a`btn btn-default",\'<b class="glyphicon glyphicon-save"></b>\',{download:n,"data-original-title":"Download"}).listen("mousedown",e).listen("focus",e).listen("click",function(t){try{var e=new Blob([b.buildHTML()]);return window.navigator.msSaveOrOpenBlob(e,n),t.preventDefault(),void 0}catch(o){}}),t.add("save:bootstrap.SplitButton",{$icon:"floppy-disk","data-original-title":"Save"},function(t){t.button._class("disabled").listen("click",function(){b.write()}),t.toggle._class("disabled"),t.items.add("bootstrap.DropdownItem",{$icon:"resize-small"}).listen("click",function(){b.write(0)}).text(".html"),t.items.add("bootstrap.DropdownItem",{$icon:"resize-full"}).listen("click",function(){b.write(1)}).text(".html + .mw.html"),t.items.add("bootstrap.DropdownItem",{$icon:"share-alt"}).listen("click",function(){b.copy()}).text("Copy")}),v.add("cpanel:bootstrap.Button`hide fleft martop5 marbottom5 marleft5 padleft15 padright15",{$icon:"cog","data-original-title":"Control panel"}).listen("click",function(){})}),v.add("bootstrap.Button`mar5 fright",{$icon:"remove","data-original-title":"Close editor (Ctrl-F12)"}).listen("click",function(){var t=location.href,e=t.indexOf("?edit");0>e&&(e=t.indexOf("&edit")),e>=0&&(window.location=t.slice(0,e)+t.slice(e+5))});var t=v.add("bootstrap.Splitbutton`martop5 fright",{$icon:"fullscreen"});t.button.listen("click",function(){b.mode=b.mode?0:1});var l=t.items;l.add("bootstrap.DropdownItem",{$icon:"chevron-left"}).listen("click",function(){b.position=1}),l.add("bootstrap.DropdownItem",{$icon:"chevron-right"}).listen("click",function(){b.position=0}),l.add("bootstrap.DropdownItem",{$icon:"chevron-up"}).listen("click",function(){b.position=2}),l.add("bootstrap.DropdownItem",{$icon:"chevron-down"}).listen("click",function(){b.position=3}),v.add("export_group:bootstrap.BtnGroup`mar5",function(t){t.add("github:bootstrap.Button",{"data-original-title":"Publish"})._icon("export")._text("GitHub").listen("click",function(){O.getSettings(!1,function(t){t&&O.publish()})})}),v.add(w=new o),g.add(T=new n),g.add(y=new e),g.createElement(),b=new a,O=new s,setInterval(function(){for(var t=0,e=k.length;e>t;t++)k[t]()},25),setInterval(function(){for(var t=0,e=C.length;e>t;t++)C[t]()},1e3)}function e(){var t=controls.create("div",{"class":"pad20"}),e=!0;Object.defineProperty(t,"visible",{get:function(){return e},set:function(n){e=n,t.element&&(t.element.style.display=e?"block":"none")}}),t.listen("element",function(t){t&&(t.style.display=e?"block":"none")});var n=t.add("bootstrap.FormGroup");return n.add("bootstrap.ControlLabel",{$text:"Title:"}),n.add("title_edit:bootstrap.ControlInput",{value:""}).listen("change",function(){S.title=n.title_edit.value}),S.listen(function(){S.title!==n.title_edit.value&&(n.title_edit.value=S.title)}),t.save=function(){},t}function n(){function t(){if(e.mode){var t=e._element;t&&t.value!==o&&(e.modified=25,o=t.value)}}var e=controls.create("textarea",{"class":"form-control",style:"font-family:Consolas,Lucida Console,Liberation Mono,DejaVu Sans Mono,Bitstream Vera Sans Mono,Courier New,monospace; display:none; border:0; border-radius:0; border-left:#f9f9f9 solid 6px; box-shadow:none; width:100%; height:100%; resize:none; "});e.code_edit_resize=function(){var t=e.element;t&&(t.style.height=$(g.element).height()-$(v.element).height()+"px")},$(window).on("resize",e.code_edit_resize),C.push(e.code_edit_resize);var n=0;Object.defineProperty(e,"mode",{get:function(){return n},set:function(t){t>2&&(t=2),t!==n&&(n=t,this.element&&(e.element.style.display=n?"block":"none"),e.code_edit_resize())}});var o;return e.listen("element",function(t){t&&(t.value=o),e.code_edit_resize()}),Object.defineProperty(e,"text",{get:function(){return this.element?this.element.value:o},set:function(t){o=t||"",this.element&&(this.element.value=o),this.modified=0}}),e.save=function(){t(),this.modified&&(this.modified=0,this.raise("text",o))},e.listen("change",t,!0),k.push(function(){t(),e.modified&&--e.modified<2&&(e.modified=0,e.raise("text",o))}),e}function o(){function t(){o.selectedIndex=o.controls.indexOf(this)}var e,n=-1,o=v.add("tabs_header:bootstrap.TabPanelHeader");return o.bind(controls.create("dataarray")),o.data.push({isoptions:!0,text:"",hint:"Page options",icon:"list-alt"},{ishtml:!0,text:"HTML",hint:"Edit as HTML"}),o.setTabs=function(t){var e=w.data;t.length+2<e.length&&e.splice(1,e.length-t.length-2);for(var n=e.length,o=t.length+2;o>n;n++)e.splice(1,0,{});for(var n=1,i=e.length-1;i>n;n++)e[n].text=t[n-1];e.raise()},o.listen("data",function(){for(var n=o.controls,i=this.data,r=n.length,a=i.length;a>r;r++)o.add("bootstrap.TabHeader").listen("click",t);for(var r=n.length-1,a=i.length;r>=a;r--){var s=n[r];s.deleteAll(),s.removeListener("click",t),o.remove(s)}for(var r=0,a=i.length;a>r;r++){var l=i[r];l.id=n[r].id;var s=n[r];s.attributes["data-original-title"]=l.hint,s.attributes.$icon=l.icon,s.text(l.text),l===e?s.class("active"):s.class(null,"active")}o.checkSelection(),o.element&&o.refresh()}),Object.defineProperty(o,"selectedIndex",{get:function(){return n},set:function(t){this.selected=t}}),Object.defineProperty(o,"selected",{get:function(){return e},set:function(t){var o=this.data;if("string"!=typeof t){if("number"==typeof t)return t>=0&&t<o.length&&t!==n?this.selected=o[t]:-1===t&&(this.selected=void 0),void 0;var i=o.indexOf(t);if(i>=0){var r=o[i];r!==e&&e&&(this.lastSelected=e)}if(t!==e||i!==n){for(var a=this.controls,s=0,l=a.length;l>s;s++)s===i?a[s].class("active"):a[s].class(null,"active");this.raise("selected",e=t?t:void 0,n=i)}}else{for(var s=0,l=o.length;l>s;s++){var r=o[s];if(r.id===t)return this.selected=r,void 0}for(var s=0,l=o.length;l>s;s++){var r=o[s];if(r.text===t)return this.selected=r,void 0}}}}),o.checkSelection=function(){var t=this.data;if(t.length){var n=t.indexOf(e);0>n&&(this.selected=this.lastSelected),this.selected||(this.selected=0)}else this.selected=-1},o}function i(){function t(t){var e=document.createElement("textarea");return e.innerHTML=t,e.value}var e,n,o=location.href;return o=o.slice(0,o.length-location.hash.length),o+=o.indexOf("?")>0?"&preview":"?preview",x=controls.create("iframe",{sandbox:"",src:o,style:"position:fixed; left:0; top:0; width:100%; height:100%; z-index:1100; border:none;"}),x.updateInnerHtml=function(t,o){e=t,n=o;var i=this.element,r=this.$DOC;if(i&&r){var a=i.contentDocument,s=i.contentWindow,l=a.getElementsByTagName("html")[0];l&&(r.initialize(),l.innerHTML=t,r.headTransformation(),s.$OPT.userjs?r.loadUserJS():setTimeout(function(){r.finalTransformation()},0))}},x.reload=function(){this.element&&this.deleteAll(),this.createElement()},x.listen("load",function(){setTimeout(function(){try{this.element.contentWindow.location.pathname!==window.location.pathname&&this.reload()}catch(t){this.reload()}this.$DOC=this.element&&x.element.contentWindow.$DOC,void 0!==e&&this.updateInnerHtml(e,n)}.bind(x),0)}),x.updateNamedSection=function(t,n,o){e=o;var i=this.$DOC,r=i.sections[t];"object"==typeof r&&r.source_node&&i.processTextNode(r.source_node,t+"\\n"+n)},x.grabHTML=function(){for(var e=this.element&&this.element.contentDocument,n=this.$DOC,o=e.documentElement.cloneNode(),i=e.createNodeIterator(o,128,null,!1),r=i.nextNode();r;)r.parentNode.removeChild(r),r=i.nextNode();var a="<!DOCTYPE html>"+o.outerHTML.replace(/<noscript>([\\s\\S]*?)<\\/noscript>/g,function(e,n){return"<noscript>"+t(n)+"</noscript>"}),s=a.lastIndexOf("</body>");return a.substr(0,s)+\'<script>$DOC.onready(function() { if ($OPT.edit_mode) return;$DOC.chead = JSON.parse(unescape("\'+escape(JSON.stringify(n.chead))+\'"), controls.reviverJSON);$DOC.cbody = JSON.parse(unescape("\'+escape(JSON.stringify(n.cbody))+\'"), controls.reviverJSON);$DOC.vars = JSON.parse(unescape("\'+escape(JSON.stringify(n.vars))+\'"), controls.reviverJSON);$DOC.onload(function(){ $DOC.chead.attachAll(); $DOC.cbody.attachAll(); for(var prop in $DOC.vars) { var v = $DOC.vars[prop]; if (v.__type) v.attachAll(); } });});</script>\'+a.substr(s)},x}function r(){function t(){return(this.opentag||"")+(this.attributes.$text||"")+this.controls.map(function(t){return t.outerHTML()}).join("")+(this.closetag||"")}var e,n,o,i;Object.defineProperty(this,"title",{get:function(){return o},set:function(r){if(o=r,!i){if(!n)return;i=n.add("div"),i.template(t)}i.controls.length=0,i.opentag="<title>"+r+"</title>",i.closetag="",e=this.buildHTML(),this.raise()}}),Object.defineProperty(this,"html",{get:function(){return e},set:function(r){if(r!==e){e=r;var a={},s={},l=document.implementation.createHTMLDocument(""),c=l.documentElement,d=/<html[\\s\\S]*?>([\\s\\S]*)<\\/html>/im.exec(e);d&&(c.innerHTML=d[1]);for(var u=controls.create("div"),h=[],f=[],p=l.createNodeIterator(c,65535,null,!1),m=p.nextNode();m;){var b=m===c?u:controls.create("div");b.template(t),h.push(m),f.push(b);var g=h.indexOf(m.parentNode);if(g>=0&&f[g].add(b),8===m.nodeType){var v=m.nodeValue,w=v[0];if(b.opentag="<!--"+m.nodeValue+"-->","%"===w);else if("!"===w);else{var y=v.indexOf(" "),T=v.indexOf("\\n"),S=v.indexOf("->");if(0>y&&0>T&&0>S);else if(0>y&&S>0);else if(T>0&&(0>y||y>T)&&(y=T),y>0&&128>y){var x=v.slice(0,y);a[x]=v.slice(y+1),s[x]=b}}}else if(m===c){var d=/(<html[\\s\\S]*?>)[\\s\\S]*?<head/im.exec(e);b.opentag="<!DOCTYPE html>\\n"+(d?d[1]:"<html>")+"\\n",b.closetag="\\n</html>"}else{var O=m.outerHTML,k=m.innerHTML;if(k){var C=O.lastIndexOf(k);0>C?b.opentag=O:(b.opentag=O.slice(0,C),b.closetag=O.slice(C+k.length))}else b.opentag=O?O:m.nodeValue}m=p.nextNode()}var N=l.getElementsByTagName("head")[0];n=N&&f[h.indexOf(N)];var E=l.getElementsByTagName("title")[0];E?(o=E.textContent,i=f[h.indexOf(E)]):(o="",i=null),this.chtml=u,this.sections=a,this.seccontrols=s,this.raise()}}}),this.updateNamedSection=function(t,n){var o=this.seccontrols[t];o&&(this.sections[t]=n,o.opentag="<!--"+t+"\\n"+n+"-->\\n",e=this.chtml.outerHTML())},this.buildHTML=function(){return this.chtml.outerHTML()}}function a(){function t(t,e,n,o,i,r,a,s,l,c,d,u){if(x.element){var h=x.element.style;h.top=t,h.right=e,h.bottom=n,h.left=o,h.width=i,h.height=r,h=g.element.style,h.top=a,h.right=s,h.bottom=l,h.left=c,h.width=d,h.height=u}}function e(){if(i)switch(r){case 1:t("0","0","0","0","100%","100%","auto","auto","20px","20px","50%","50%");break;case 2:t("0","0","0","0","100%","100%","20px","auto","auto","20px","50%","50%");break;case 3:t("0","0","0","0","100%","100%","auto","20px","20px","auto","50%","50%");break;default:t("0","0","0","0","100%","100%","20px","20px","auto","auto","50%","50%")}else switch(r){case 1:t("0","0","0","auto","50%","100%","0","auto","0","0","50%","100%");break;case 2:t("auto","0","0","0","100%","50%","0","0","auto","0","100%","50%");break;case 3:t("0","0","auto","0","100%","50%","auto","0","0","0","100%","50%");break;default:t("0","auto","0","0","50%","100%","0","0","0","auto","50%","100%")}T.code_edit_resize()}var n=this;S.listen(function(){n.edit_html=S.html,w.setTabs(Object.keys(S.sections)),x.updateInnerHtml(S.chtml.innerHTML(),Object.keys(S.sections))});var o;Object.defineProperty(this,"edit_html",{get:function(){return o},set:function(t){t!==o&&(o=t,S.html=o)}}),this.checkEdits=function(){var t=w.selected;t&&t.isoptions?y.save():t&&T.save()},w.listen("selected",this,function(){this.checkEdits(),this.updateCodeEdit(),this.modified=5,y.visible=0===w.selectedIndex}),this.updateCodeEdit=function(){var t=w.selected;switch(T.mode=!t||t.isoptions?0:t.ishtml?1:2,T.mode){case 1:T.text=n.edit_html;break;case 2:var e=w.selected;e?(T.section=e.text,T.text=S.sections[e.text]):T.text="";break;default:T.text=""}},T.listen("text",function(t){switch(T.mode){case 1:n.edit_html=t,n.modified=25;break;case 2:n.updateNamedSection(T.section,T.text),n.modified=25}}),this.updateNamedSection=function(t,e){S.updateNamedSection(t,e),o=S.buildHTML(),x.updateNamedSection(t,e,S.chtml.innerHTML())},this.save=function(){this.checkEdits(),f.selected=w.selected&&w.selected.text,f.editMw=this.edit_html,f.html===m.mwHtml&&(f.delete=!0),f.raise(),this.modified=0},this.write=function(){this.save(),arguments.length&&(m.fileMode=arguments[0]),m.fileMode?m.write(n.buildHTML(),x.grabHTML())&&h.onReady(function(){location.reload()}):m.write(n.buildHTML())&&h.onReady(function(){location.reload()})},this.copy=function(){this.save();var t=window.prompt("Enter file name",m.fileName);if(t&&t!==m.fileName)if(m.fileMode){var e=m.writeTo(t,n.buildHTML(),x.grabHTML());e&&h.onReady(function(){window.location=e})}else{var e=m.writeTo(t,n.buildHTML());e&&h.onReady(function(){window.location=e})}},this.revert=function(){this.edit_html=m.mwHtml,this.updateCodeEdit(),this.modified=2,setTimeout(function(){window.location.reload()},300)},this.buildHTML=function(){return T.save(),S.buildHTML()};var i=0,r=0,a=600,s=500;if(Object.defineProperty(this,"mode",{get:function(){return i},set:function(t){i=t,e(),n.saveLayout()}}),Object.defineProperty(this,"position",{get:function(){return r},set:function(t){r=t,e(),n.saveLayout()}}),this.saveLayout=function(){"undefined"!=typeof localStorage&&localStorage.setItem("editor layout",[i,r,a,s].join(";"))},"undefined"!=typeof localStorage){try{var l=localStorage.getItem("editor layout").split(";");i=parseInt(l[0]),r=parseInt(l[1]),a=parseInt(l[2]),s=parseInt(l[3])}catch(c){}e()}var d=localStorage&&localStorage.getItem("default selected page");w.lastSelected=f.selected||d||w.data[0],this.edit_html=f.editMw||m.mwHtml||"",w.checkSelection(),m.writable&&(v.save_group.save.button.class(null,"disabled"),v.save_group.save.toggle.class(null,"disabled")),k.push(function(){this.modified&&--this.modified<2&&(this.modified=0,this.save())}.bind(this))}function s(){function t(){var t=controls.create("bootstrap.modal",{style:"z-index:1200;",disabled:!0});t.close=t.header.add("button`close","&times;",{type:"button"}),t.header.add("h4`modal-title","Publish on GitHub");var e=t.body.add("form:bootstrap.Form");return e._add("bootstrap.FormGroup",function(e){e.add("bootstrap.ControlLabel","Username:"),t.user=e.add("bootstrap.ControlInput")})._add("bootstrap.FormGroup",function(e){e._add("bootstrap.ControlLabel","Repository:"),t.repo=e.add("bootstrap.ControlInput")})._add("bootstrap.FormGroup",function(e){e._add("bootstrap.ControlLabel","Branch:"),t.branch=e.add("bootstrap.ControlInput")})._add("bootstrap.FormGroup",function(e){e._add("bootstrap.ControlLabel","Path in repository:"),t.path=e.add("bootstrap.ControlInput")})._add("bootstrap.FormGroup",function(e){e._add("bootstrap.ControlLabel","Personal access token or password:"),t.apikey=e.add("bootstrap.ControlInput")}),t.OK=t.footer.add("bootstrap.Button#primary","OK"),t.Cancel=t.footer.add("bootstrap.Button","Cancel"),t.modeCheckbox=e.add("bootstrap.FormGroup").add("bootstrap.ControlCheckbox`martop20",{$text:"Compile to html"}),t.ref0=e.add("bootstrap.FormGroup").add("a`martop20",{target:"repo"}),setInterval(function(){var e=t.user.value,n=t.repo.value;if(e&&n){var o="https://github.com/"+e+"/"+n;t.ref0._text(o)._attr("href",o)}},977),t}this.getSettings=function(e,n){var o=p.github||(p.github={}),i=o.user,r=o.repo,a=o.branch,s=l({fileName:f.github_path}),c=sessionStorage.getItem("github-apikey")||"";s.fileName||(s=l({fileName:decodeURIComponent(location.pathname).split("/").slice(2).join("/")})),i=i||location.host.split(".")[0],r=r||decodeURIComponent(location.pathname).split("/")[1],a=a||"gh-pages";var d=$DOC.cbody.github_modal;d||(d=$DOC.cbody.github_modal=$DOC.cbody.add(t()),d.createElement(),d.close.listen("click",function(){$(d.element).modal("hide"),n&&n(!1)}),d.OK.listen("click",function(){var t=p.github||(p.github={});t.user=d.user.value||"",sessionStorage.setItem("github-apikey",d.apikey.value||""),t.repo=d.repo.value||"",t.branch=d.branch.value||"gh-pages",p.raise(),f.github_path=d.path.value||"",f.raise(),d.callback&&d.callback(t.user&&t.repo&&t.branch&&f.github_path&&d.apikey.value)}),d.Cancel.listen("click",function(){$(d.element).modal("hide"),d.callback&&d.callback(!1)})),d.user.value=i,d.apikey.value=c,d.repo.value=r,d.branch.value=a,d.path.value=s.fileName,d.modeCheckbox.checked=m.fileMode,d.callback=n,$(d.element).modal("show")},this.publish=function(){var t=p.github||(p.github={}),e=new window.github_api({username:t.user,password:sessionStorage.getItem("github-apikey"),auth:"basic"}),n=e.getRepo(t.user,t.repo),o=b.buildHTML(),i=l({fileName:f.github_path}),r=$DOC.cbody.github_modal;if(r.modeCheckbox.checked){var a=x.grabHTML();n.write(t.branch,i.mwFileName,o,"---",function(e){e?console.log(e):setTimeout(function(){n.write(t.branch,i.fileName,a,"---",function(e){e?setTimeout(function(){n.write(t.branch,i.fileName,a,"---",function(t){t?console.log(t):$(r&&r.element).modal("hide")})},3e3):$(r&&r.element).modal("hide")})},3e3)})}else n.write(t.branch,i.fileName,o,"---",function(e){e?console.log(e):setTimeout(function(){n.removeFile(t.branch,i.mwFileName,function(e){e&&404!==e?setTimeout(function(){n.removeFile(t.branch,i.mwFileName,function(t){t&&404!==t?console.log(t):$(r&&r.element).modal("hide")})},3e3):$(r&&r.element).modal("hide")})},3e3)})}}function l(t){var e=t.fileName,n=t.mwFileName;return e?".html"!==e.slice(-5)?(t.fileName+=".html",l(t)):(".mw.html"===e.slice(-8)?(e=e.slice(0,e.length-8),n=e+".mw.html",e+=".html"):n=e.slice(0,e.length-5)+".mw.html",t.fileName=e,t.mwFileName=n,t):t}function c(){this.environment=0,this.writable=0,this.errorState=-1,this.mwHtml="",this.fileMode=0;var t=location.url,e=t.lastIndexOf("/"),n=t.lastIndexOf("\\\\");e=n>e?n:e,this.path=t.slice(0,e+1),this.fileName=t.slice(e+1),l(this);var o=this;if("undefined"!=typeof nwDispatcher&&"file:"===location.protocol){this.environment=1,this.writable=!0;var i=require("fs"),r=this.path.slice(8)+this.mwFileName,a=this.path.slice(8)+this.fileName;try{i.existsSync(r)?(this.fileMode=1,this.mwHtml=i.readFileSync(r).toString().replace(/\\r/g,"")):this.mwHtml=i.readFileSync(a).toString().replace(/\\r/g,""),this.errorState=0}catch(s){this.errorState=1}this.write=function(t,e){if(this.writable&&!this.errorState)try{if(this.fileMode)i.writeFileSync(r,t),i.writeFileSync(a,e);else{i.writeFileSync(a,t);try{i.unlinkSync(r)}catch(n){}}return a}catch(n){console.log(n)}},this.writeTo=function(t,e,n){if(this.writable&&!this.errorState)try{var o=l({fileName:t}),r=this.path.slice(8)+o.mwFileName,a=this.path.slice(8)+o.fileName;if(this.fileMode)i.writeFileSync(r,e),i.writeFileSync(a,n);else{i.writeFileSync(a,e);try{i.unlinkSync(r)}catch(s){}}return a}catch(s){console.log(s)}}}else{"file:"===location.protocol&&(this.errorState=1);var c=this;$.ajax({url:o.path+o.mwFileName,type:"GET",dataType:"html",async:0}).done(function(t){c.mwHtml=t.replace(/\\r/g,""),c.fileMode=1}).fail(function(){$.ajax({url:o.path+o.fileName,type:"GET",dataType:"html",async:0}).done(function(t){c.mwHtml=t.replace(/\\r/g,"")}).fail(function(){this.errorState=1})})}}function d(t,e){function n(){u(\'<h4><b class="glyphicon glyphicon-warning-sign">&nbsp;</b>Editor loading error</h4>Your browser does not supported and can not be used to edit documents. Please use Firefox, Chrome, Opera or Safari.\')}var o,i,r=this;this.errorState=-1;for(var a in t){var s=t[a];s.listen(function(){this.modified=!0})}if(k.push(function(){for(var e in t){var n=t[e];n.modified&&r.write()}}),window.indexedDB){try{var l=window.indexedDB.open("markdown-webdocs.editor.db.1",1);l.onsuccess=function(t){o=t.target.result,e()},l.onupgradeneeded=function(n){o=n.target.result;for(var i in t)o.createObjectStore(i,{keyPath:"key"});e()},l.onerror=function(t){u(\'<h4><b class="glyphicon glyphicon-warning-sign">&nbsp;</b>Editor loading error</h4>Database error. Please try using another browser for editing the document.\'),console.log(t)},l.onblocked=function(t){u(\'<h4><b class="glyphicon glyphicon-warning-sign">&nbsp;</b>Editor loading error</h4>Database blocked\'),console.log(t)}}catch(c){return n(),void 0}r.restore=function(e){try{var n=o.transaction(Object.keys(t),"readonly"),i=0,a=0;for(var s in t){var l=t[s],c=n.objectStore(s).get(l.key);i++,c.onsuccess=function(n){l=t[n.target.source.name],l.fromJSON(n.target.result),l.modified=!1,a++,a===i&&(r.errorState=0,e&&e())},c.onerror=function(t){console.log(t),this.errorState=1}}}catch(d){console.log(d),this.errorState=1}},r.write=function(){if(!this.errorState)try{var e=o.transaction(Object.keys(t),"readwrite");for(var n in t){var i=t[n];if(i.modified){var r=e.objectStore(n);if(i.delete)delete i.delete,r.delete(i.key);else{var a=r.put(i.toJSON());a.onsuccess=function(){},a.onerror=function(t){console.log(t)}}i.modified=!1,i.selected&&localStorage&&localStorage.setItem("default selected page",i.selected)}}}catch(s){console.log(s)}}}else{if(!window.openDatabase)return n(),void 0;try{var i=window.openDatabase("markdown-webdocs.editor.db.1","1.0","markdow webdocs editor",0);if(!i)return n(),void 0;i.transaction(function(e){for(var o in t)e.executeSql("CREATE TABLE IF NOT EXISTS "+o+" (key TEXT NOT NULL PRIMARY KEY, value TEXT)",[],null,n)},n,e)}catch(c){return n(),void 0}r.restore=function(e){try{i.transaction(function(n){var o=0,i=0;for(var a in t){var s=t[a];n.executeSql("SELECT value FROM "+a+" WHERE key = ? LIMIT 1",[s.key],function(t,n){if(n.rows.length){try{s.fromJSON(JSON.parse(n.rows.item(0).value))}catch(a){s.fromJSON({})}s.modified=!1}i++,i===o&&(r.errorState=0,e&&e())},function(t){console.log(t)})}},function(){console.log(event)},function(){})}catch(n){}},r.write=function(){if(!errorState)try{i.transaction(function(e){for(var n in t){var o=t[n];o.delete?(delete o.delete,e.executeSql("DELETE FROM "+n+" WHERE key = ?",[o.key],function(){},function(t){console.log(t)})):e.executeSql("INSERT OR REPLACE INTO "+n+" (key, value) VALUES (?, ?)",[o.key,JSON.stringify(o)],function(){},function(t){console.log(t)})}},function(){console.log(event)},function(){}),modified=!1}catch(e){console.log(e)}}}r.onReady=function(t){setTimeout(function(){t()},400)}}function u(t){$DOC.cbody.attachAll().add("div",{style:"position:fixed; left:0; top:0; width:100%; height:100%; background-color:white; opacity:0.9; z-index:1201;"}).createElement(),$DOC.cbody.add("alert:div.mar20 alert alert-warning col1-sm-offset-3 col-sm-6",{$text:t,style:"position:fixed; left:25px; top:25px; z-index:1202;"}).createElement()}var h,f,p,m,b,g,v,w,y,T,S,x,O,k=[],C=[];$(window).load(function(){location.url=decodeURI(location.href.split("?")[0]),f=controls.create("DataObject"),f.key=location.url,f.fromJSON=function(t){this.selected=t&&t.selected,this.sourceMw=t&&t.sourceMw,this.editMw=t&&t.editMw,this.history=t&&t.history,this.github_path=t&&t.github_path,Array.isArray(this.history)||(this.history=[])},f.toJSON=function(){return{key:this.key,selected:this.selected,sourceMw:this.sourceMw,editMw:this.editMw,history:this.history,github_path:this.github_path}},p=controls.create("DataObject");var e=document.createElement("script");e.setAttribute("src",$DOC.root),p.key=e.src.split("?")[0],p.fromJSON=function(t){this.github=t&&t.github},p.toJSON=function(){return{key:this.key,github:this.github}},h=new d({drafts:f,settings:p},function(){h.restore(t)})}),r.prototype=controls.create("DataObject")}window.top!==window.self||window["mw-document-editor"]||(window["mw-document-editor"]=!0,"undefined"!=typeof $ENV?t():(window.defercqueue||(window.defercqueue=[])).push(t))}(),function(){function t(t){var e,n,o,i,r,a,s,l="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=",c="",d=0;do e=t.charCodeAt(d++),n=t.charCodeAt(d++),o=t.charCodeAt(d++),i=e>>2,r=(3&e)<<4|n>>4,a=(15&n)<<2|o>>6,s=63&o,isNaN(n)?a=s=64:isNaN(o)&&(s=64),c=c+l.charAt(i)+l.charAt(r)+l.charAt(a)+l.charAt(s);while(d<t.length);return c}var e="https://api.github.com",n=function(o){function i(n,i,r,a,s,l){function c(){var t=i.indexOf("//")>=0?i:e+i;return t+(/\\?/.test(t)?"&":"?")+(new Date).getTime()}var d=new XMLHttpRequest;return s||(d.dataType="json"),d.open(n,c(),!l),l||(d.onreadystatechange=function(){4===this.readyState&&(this.status>=200&&this.status<300||304===this.status?a(null,s?this.responseText:this.responseText?JSON.parse(this.responseText):!0,this):a({path:i,request:this,error:this.status}))}),d.setRequestHeader("Accept","application/vnd.github.raw+json"),d.setRequestHeader("Content-Type","application/json;charset=UTF-8"),(o.token||o.username&&o.password)&&d.setRequestHeader("Authorization",o.token?"token "+o.token:"Basic "+t(o.username+":"+o.password)),r?d.send(JSON.stringify(r)):d.send(),l?d.response:void 0}function r(t,e){var n=[];!function o(){i("GET",t,null,function(i,r,a){if(i)return e(i);n.push.apply(n,r);var s=(a.getResponseHeader("link")||"").split(/\\s*,\\s*/g),l=_.find(s,function(t){return/rel="next"/.test(t)});l&&(l=(/<(.*)>/.exec(l)||[])[1]),l?(t=l,o()):e(i,n)})}()}n.User=function(){this.repos=function(t){r("/user/repos?type=all&per_page=1000&sort=updated",function(e,n){t(e,n)})},this.userRepos=function(t,e){r("/users/"+t+"/repos?type=all&per_page=1000&sort=updated",function(t,n){e(t,n)})},this.orgRepos=function(t,e){r("/orgs/"+t+"/repos?type=all&&page_num=1000&sort=updated&direction=desc",function(t,n){e(t,n)})}},n.Repository=function(t){function e(t,e){return t===s.branch&&s.sha?e(null,s.sha):(r.getRef("heads/"+t,function(n,o){s.branch=t,s.sha=o,e(n,o)}),void 0)}var n=t.name,o=t.user,r=this,a="/repos/"+o+"/"+n,s={branch:null,sha:null};this.getRef=function(t,e){i("GET",a+"/git/refs/"+t,null,function(t,n){return t?e(t):(e(null,n.object.sha),void 0)})},this.createRef=function(t,e){i("POST",a+"/git/refs",t,e)},this.deleteRef=function(e,n){i("DELETE",a+"/git/refs/"+e,t,n)},this.compare=function(t,e,n){i("GET",a+"/compare/"+t+"..."+e,null,function(t,e){return t?n(t):(n(null,e),void 0)})},this.listBranches=function(t){i("GET",a+"/git/refs/heads",null,function(e,n){return e?t(e):(t(null,_.map(n,function(t){return _.last(t.ref.split("/"))})),void 0)})},this.getBlob=function(t,e){i("GET",a+"/git/blobs/"+t,null,e,"raw")},this.getSha=function(t,e,n){return""===e?r.getRef("heads/"+t,n):(r.getTree(t+"?recursive=true",function(t,o){if(t)return n(t);var i=_.select(o,function(t){return t.path===e})[0];n(null,i?i.sha:null)}),void 0)},this.getTree=function(t,e){i("GET",a+"/git/trees/"+t,null,function(t,n){return t?e(t):(e(null,n.tree),void 0)})},this.postBlob=function(t,e){"string"==typeof t&&(t={content:t,encoding:"utf-8"}),i("POST",a+"/git/blobs",t,function(t,n){return t?e(t):(e(null,n.sha),void 0)})},this.updateTree=function(t,e,n,o){var r={base_tree:t,tree:[{path:e,mode:"100644",type:"blob",sha:n}]};i("POST",a+"/git/trees",r,function(t,e){return t?o(t):(o(null,e.sha),void 0)})},this.postTree=function(t,e){i("POST",a+"/git/trees",{tree:t},function(t,n){return t?e(t):(e(null,n.sha),void 0)})},this.commit=function(e,n,o,r){var l={message:o,author:{name:t.username},parents:[e],tree:n};i("POST",a+"/git/commits",l,function(t,e){return s.sha=e&&e.sha,t?r(t):(r(null,e&&e.sha),void 0)})},this.updateHead=function(t,e,n){i("PATCH",a+"/git/refs/heads/"+t,{sha:e},function(t){n(t)})},this.show=function(t){i("GET",a,null,t)},this.contents=function(t,e,n,o){return i("GET",a+"/contents?ref="+t+(e?"&path="+e:""),null,n,"raw",o)},this.fork=function(t){i("POST",a+"/forks",null,t)},this.branch=function(t,e,n){2===arguments.length&&"function"==typeof arguments[1]&&(n=e,e=t,t="master"),this.getRef("heads/"+t,function(t,o){return t&&n?n(t):(r.createRef({ref:"refs/heads/"+e,sha:o},n),void 0)})},this.createPullRequest=function(t,e){i("POST",a+"/pulls",t,e)},this.listHooks=function(t){i("GET",a+"/hooks",null,t)},this.getHook=function(t,e){i("GET",a+"/hooks/"+t,null,e)},this.createHook=function(t,e){i("POST",a+"/hooks",t,e)},this.editHook=function(t,e,n){i("PATCH",a+"/hooks/"+t,e,n)},this.deleteHook=function(t,e){i("DELETE",a+"/hooks/"+t,null,e)},this.read=function(t,e,n){r.getSha(t,e,function(t,e){return e?(r.getBlob(e,function(t,o){n(t,o,e)}),void 0):n("not found",null)})},this.remove=function(t,n,o){e(t,function(e,i){r.getTree(i+"?recursive=true",function(e,a){var s=a.filter(function(t){return t.path!==n});s.forEach(function(t){"tree"===t.type&&delete t.sha}),a.length===s.length&&o(404),r.postTree(s,function(e,a){r.commit(i,a,"Deleted "+n,function(e,n){r.updateHead(t,n,function(t){o(t)})})})})})},this.removeFile=function(t,n,o){e(t,function(e,s){r.getTree(s+"?recursive=true",function(e,r){r&&r.some(function(e){if(e.path===n&&"blob"===e.type){var r={path:e.path,message:"---",sha:e.sha,branch:t};return i("DELETE",a+"/contents/"+n,r,function(t,e){return t?o(t):(o(null,e.sha),void 0)}),!0}})||o(null)})})},this.move=function(t,n,o,i){e(t,function(e,a){r.getTree(a+"?recursive=true",function(e,s){_.each(s,function(t){t.path===n&&(t.path=o),"tree"===t.type&&delete t.sha}),r.postTree(s,function(e,o){r.commit(a,o,"Deleted "+n,function(e,n){r.updateHead(t,n,function(t){i(t)})})})})})},this.write=function(t,n,o,i,a){e(t,function(e,s){return e?a(e):(r.postBlob(o,function(e,o){return e?a(e):(r.updateTree(s,n,o,function(e,n){return e?a(e):(r.commit(s,n,i,function(e,n){return e?a(e):(r.updateHead(t,n,a),void 0)}),void 0)}),void 0)}),void 0)})},this.getCommits=function(t,e){t=t||{};var n=a+"/commits",o=[];if(t.sha&&o.push("sha="+encodeURIComponent(t.sha)),t.path&&o.push("path="+encodeURIComponent(t.path)),t.since){var r=t.since;r.constructor===Date&&(r=r.toISOString()),o.push("since="+encodeURIComponent(r))}if(t.until){var s=t.until;s.constructor===Date&&(s=s.toISOString()),o.push("until="+encodeURIComponent(s))}o.length>0&&(n+="?"+o.join("&")),i("GET",n,null,e)}},this.getRepo=function(t,e){return new n.Repository({user:t,name:e})},this.getUser=function(){return new n.User}};window.github_api=n}();');
             //$DOC.appendScript('document.editor.js', '/*include editor*/');
 
         window.addEventListener('keydown', function(event) {
@@ -11445,289 +11465,7 @@ if (typeof jQuery === "undefined") { throw new Error("Bootstrap requires jQuery"
 })();
 
 
-},{"./temp/bootstrap.controls.js":4,"./temp/marked":5,"controls":6,"dot":3}],2:[function(require,module,exports){
-// doT.js
-// 2011, Laura Doktorova, https://github.com/olado/doT
-// Licensed under the MIT license.
-
-(function() {
-	"use strict";
-
-	var doT = {
-		version: '1.0.1',
-		templateSettings: {
-			evaluate:    /\{\{([\s\S]+?(\}?)+)\}\}/g,
-			interpolate: /\{\{=([\s\S]+?)\}\}/g,
-			encode:      /\{\{!([\s\S]+?)\}\}/g,
-			use:         /\{\{#([\s\S]+?)\}\}/g,
-			useParams:   /(^|[^\w$])def(?:\.|\[[\'\"])([\w$\.]+)(?:[\'\"]\])?\s*\:\s*([\w$\.]+|\"[^\"]+\"|\'[^\']+\'|\{[^\}]+\})/g,
-			define:      /\{\{##\s*([\w\.$]+)\s*(\:|=)([\s\S]+?)#\}\}/g,
-			defineParams:/^\s*([\w$]+):([\s\S]+)/,
-			conditional: /\{\{\?(\?)?\s*([\s\S]*?)\s*\}\}/g,
-			iterate:     /\{\{~\s*(?:\}\}|([\s\S]+?)\s*\:\s*([\w$]+)\s*(?:\:\s*([\w$]+))?\s*\}\})/g,
-			varname:	'it',
-			strip:0,
-			append:		true,
-			selfcontained: false
-		},
-		template: undefined, //fn, compile template
-		compile:  undefined  //fn, for express
-	};
-
-	if (typeof module !== 'undefined' && module.exports) {
-		module.exports = doT;
-	} else if (typeof define === 'function' && define.amd) {
-		define(function(){return doT;});
-	} else {
-		this.doT=doT;
-	}
-
-	function encodeHTMLSource() {
-		var encodeHTMLRules = { "&": "&#38;", "<": "&#60;", ">": "&#62;", '"': '&#34;', "'": '&#39;', "/": '&#47;' },
-			matchHTML = /&(?!#?\w+;)|<|>|"|'|\//g;
-		return function() {
-			return this ? this.replace(matchHTML, function(m) {return encodeHTMLRules[m] || m;}) : this;
-		};
-	}
-	String.prototype.encodeHTML = encodeHTMLSource();
-
-	var startend = {
-		append: { start: "'+(",      end: ")+'",      endencode: "||'').toString().encodeHTML()+'" },
-		split:  { start: "';out+=(", end: ");out+='", endencode: "||'').toString().encodeHTML();out+='"}
-	}, skip = /$^/;
-
-	function resolveDefs(c, block, def) {
-		return ((typeof block === 'string') ? block : block.toString())
-		.replace(c.define || skip, function(m, code, assign, value) {
-			if (code.indexOf('def.') === 0) {
-				code = code.substring(4);
-			}
-			if (!(code in def)) {
-				if (assign === ':') {
-					if (c.defineParams) value.replace(c.defineParams, function(m, param, v) {
-						def[code] = {arg: param, text: v};
-					});
-					if (!(code in def)) def[code]= value;
-				} else {
-					new Function("def", "def['"+code+"']=" + value)(def);
-				}
-			}
-			return '';
-		})
-		.replace(c.use || skip, function(m, code) {
-			if (c.useParams) code = code.replace(c.useParams, function(m, s, d, param) {
-				if (def[d] && def[d].arg && param) {
-					var rw = (d+":"+param).replace(/'|\\/g, '_');
-					def.__exp = def.__exp || {};
-					def.__exp[rw] = def[d].text.replace(new RegExp("(^|[^\\w$])" + def[d].arg + "([^\\w$])", "g"), "$1" + param + "$2");
-					return s + "def.__exp['"+rw+"']";
-				}
-			});
-			var v = new Function("def", "return " + code)(def);
-			return v ? resolveDefs(c, v, def) : v;
-		});
-	}
-
-	function unescape(code) {
-		return code.replace(/\\('|\\)/g, "$1").replace(/[\r\t\n]/g, ' ');
-	}
-
-	doT.template = function(tmpl, c, def) {
-		c = c || doT.templateSettings;
-		var cse = c.append ? startend.append : startend.split, needhtmlencode, sid = 0, indv,
-			str  = (c.use || c.define) ? resolveDefs(c, tmpl, def || {}) : tmpl;
-
-		str = ("var out='" + (c.strip ? str.replace(/(^|\r|\n)\t* +| +\t*(\r|\n|$)/g,' ')
-					.replace(/\r|\n|\t|\/\*[\s\S]*?\*\//g,''): str)
-			.replace(/'|\\/g, '\\$&')
-			.replace(c.interpolate || skip, function(m, code) {
-				return cse.start + unescape(code) + cse.end;
-			})
-			.replace(c.encode || skip, function(m, code) {
-				needhtmlencode = true;
-				return cse.start + unescape(code) + cse.endencode;
-			})
-			.replace(c.conditional || skip, function(m, elsecase, code) {
-				return elsecase ?
-					(code ? "';}else if(" + unescape(code) + "){out+='" : "';}else{out+='") :
-					(code ? "';if(" + unescape(code) + "){out+='" : "';}out+='");
-			})
-			.replace(c.iterate || skip, function(m, iterate, vname, iname) {
-				if (!iterate) return "';} } out+='";
-				sid+=1; indv=iname || "i"+sid; iterate=unescape(iterate);
-				return "';var arr"+sid+"="+iterate+";if(arr"+sid+"){var "+vname+","+indv+"=-1,l"+sid+"=arr"+sid+".length-1;while("+indv+"<l"+sid+"){"
-					+vname+"=arr"+sid+"["+indv+"+=1];out+='";
-			})
-			.replace(c.evaluate || skip, function(m, code) {
-				return "';" + unescape(code) + "out+='";
-			})
-			+ "';return out;")
-			.replace(/\n/g, '\\n').replace(/\t/g, '\\t').replace(/\r/g, '\\r')
-			.replace(/(\s|;|\}|^|\{)out\+='';/g, '$1').replace(/\+''/g, '')
-			.replace(/(\s|;|\}|^|\{)out\+=''\+/g,'$1out+=');
-
-		if (needhtmlencode && c.selfcontained) {
-			str = "String.prototype.encodeHTML=(" + encodeHTMLSource.toString() + "());" + str;
-		}
-		try {
-			return new Function(c.varname, str);
-		} catch (e) {
-			if (typeof console !== 'undefined') console.log("Could not create a template function: " + str);
-			throw e;
-		}
-	};
-
-	doT.compile = function(tmpl, def) {
-		return doT.template(tmpl, null, def);
-	};
-}());
-
-},{}],3:[function(require,module,exports){
-/* doT + auto-compilation of doT templates
- *
- * 2012, Laura Doktorova, https://github.com/olado/doT
- * Licensed under the MIT license
- *
- * Compiles .def, .dot, .jst files found under the specified path.
- * It ignores sub-directories.
- * Template files can have multiple extensions at the same time.
- * Files with .def extension can be included in other files via {{#def.name}}
- * Files with .dot extension are compiled into functions with the same name and
- * can be accessed as renderer.filename
- * Files with .jst extension are compiled into .js files. Produced .js file can be
- * loaded as a commonJS, AMD module, or just installed into a global variable
- * (default is set to window.render).
- * All inline defines defined in the .jst file are
- * compiled into separate functions and are available via _render.filename.definename
- *
- * Basic usage:
- * var dots = require("dot").process({path: "./views"});
- * dots.mytemplate({foo:"hello world"});
- *
- * The above snippet will:
- * 1. Compile all templates in views folder (.dot, .def, .jst)
- * 2. Place .js files compiled from .jst templates into the same folder.
- *    These files can be used with require, i.e. require("./views/mytemplate").
- * 3. Return an object with functions compiled from .dot templates as its properties.
- * 4. Render mytemplate template.
- */
-
-var fs = require("fs"),
-	doT = module.exports = require("./doT");
-
-doT.process = function(options) {
-	//path, destination, global, rendermodule, templateSettings
-	return new InstallDots(options).compileAll();
-};
-
-function InstallDots(o) {
-	this.__path 		= o.path || "./";
-	if (this.__path[this.__path.length-1] !== '/') this.__path += '/';
-	this.__destination	= o.destination || this.__path;
-	if (this.__destination[this.__destination.length-1] !== '/') this.__destination += '/';
-	this.__global		= o.global || "window.render";
-	this.__rendermodule	= o.rendermodule || {};
-	this.__settings 	= o.templateSettings ? copy(o.templateSettings, copy(doT.templateSettings)) : undefined;
-	this.__includes		= {};
-}
-
-InstallDots.prototype.compileToFile = function(path, template, def) {
-	def = def || {};
-	var modulename = path.substring(path.lastIndexOf("/")+1, path.lastIndexOf("."))
-		, defs = copy(this.__includes, copy(def))
-		, settings = this.__settings || doT.templateSettings
-		, compileoptions = copy(settings)
-		, defaultcompiled = doT.template(template, settings, defs)
-		, exports = []
-		, compiled = ""
-		, fn;
-
-	for (var property in defs) {
-		if (defs[property] !== def[property] && defs[property] !== this.__includes[property]) {
-			fn = undefined;
-			if (typeof defs[property] === 'string') {
-				fn = doT.template(defs[property], settings, defs);
-			} else if (typeof defs[property] === 'function') {
-				fn = defs[property];
-			} else if (defs[property].arg) {
-				compileoptions.varname = defs[property].arg;
-				fn = doT.template(defs[property].text, compileoptions, defs);
-			}
-			if (fn) {
-				compiled += fn.toString().replace('anonymous', property);
-				exports.push(property);
-			}
-		}
-	}
-	compiled += defaultcompiled.toString().replace('anonymous', modulename);
-	fs.writeFileSync(path, "(function(){" + compiled
-		+ "var itself=" + modulename + ";"
-		+ addexports(exports)
-		+ "if(typeof module!=='undefined' && module.exports) module.exports=itself;else if(typeof define==='function')define(function(){return itself;});else {"
-		+ this.__global + "=" + this.__global + "||{};" + this.__global + "['" + modulename + "']=itself;}}());");
-};
-
-function addexports(exports) {
-	for (var ret ='', i=0; i< exports.length; i++) {
-		ret += "itself." + exports[i]+ "=" + exports[i]+";";
-	}
-	return ret;
-}
-
-function copy(o, to) {
-	to = to || {};
-	for (var property in o) {
-		to[property] = o[property];
-	}
-	return to;
-}
-
-function readdata(path) {
-	var data = fs.readFileSync(path);
-	if (data) return data.toString();
-	console.log("problems with " + path);
-}
-
-InstallDots.prototype.compilePath = function(path) {
-	var data = readdata(path);
-	if (data) {
-		return doT.template(data,
-					this.__settings || doT.templateSettings,
-					copy(this.__includes));
-	}
-};
-
-InstallDots.prototype.compileAll = function() {
-	console.log("Compiling all doT templates...");
-
-	var defFolder = this.__path,
-		sources = fs.readdirSync(defFolder),
-		k, l, name;
-
-	for( k = 0, l = sources.length; k < l; k++) {
-		name = sources[k];
-		if (/\.def(\.dot|\.jst)?$/.test(name)) {
-			console.log("Loaded def " + name);
-			this.__includes[name.substring(0, name.indexOf('.'))] = readdata(defFolder + name);
-		}
-	}
-
-	for( k = 0, l = sources.length; k < l; k++) {
-		name = sources[k];
-		if (/\.dot(\.def|\.jst)?$/.test(name)) {
-			console.log("Compiling " + name + " to function");
-			this.__rendermodule[name.substring(0, name.indexOf('.'))] = this.compilePath(defFolder + name);
-		}
-		if (/\.jst(\.dot|\.def)?$/.test(name)) {
-			console.log("Compiling " + name + " to file");
-			this.compileToFile(this.__destination + name.substring(0, name.indexOf('.')) + '.js',
-					readdata(defFolder + name));
-		}
-	}
-	return this.__rendermodule;
-};
-
-},{"./doT":2,"fs":7}],4:[function(require,module,exports){
+},{"./temp/bootstrap.controls.js":2,"./temp/marked":3,"controls":4,"dot":6}],2:[function(require,module,exports){
 //     controls.bootstrap.js
 //     purpose: twitter bootstrap VCL for using with controls.js
 //     http://aplib.github.io/controls.js/bootstrap.controls-demo.html
@@ -11741,7 +11479,7 @@ InstallDots.prototype.compileAll = function() {
 
 function Bootstrap(controls) {
     var bootstrap = this;
-    bootstrap.VERSION = '0.6.15'/*#.#.##*/;
+    bootstrap.VERSION = '0.7.01'/*#.#.##*/;
     if (!controls)
         throw new TypeError('controls.bootstrap.js: controls.js not found!');
     if (controls.bootstrap && controls.bootstrap.VERSION >= bootstrap.VERSION)
@@ -11815,26 +11553,23 @@ function Bootstrap(controls) {
     // Panel
     // 
     function Panel(parameters, attributes) {
-        this.initialize('bootstrap.Panel', parameters, attributes);
-        this.body = this.add('div', {class:'panel-body'});
-        Object.defineProperty(this, 'header', { enumerable: true, get: function() {
-            var _header = this._header;
-            if (!_header) {
-                 _header = this.insert(0, 'div', {class:'panel-heading panel-title'});
-                 _header._name = 'header';
-                 this._header = _header;
-            }
-            return _header;
-        } });
-        Object.defineProperty(this, 'footer', { enumerable: true, get: function() {
-            var _footer = this._footer;
-            if (!_footer) {
-                 _footer = this.add('div', {class:'panel-footer'});
-                 _footer._name = 'header';
-                 this._footer = _footer;
-            }
-            return _footer;
-        } });
+        this.initialize('bootstrap.Panel', parameters, attributes)
+            .add('body:div`panel-body', attributes.$text);
+        attributes.$text = undefined;
+    
+        if (parameters.header) {
+            if (typeof parameters.header === 'string')
+                this.insert(0, 'header:div`panel-heading panel-title', parameters.header);
+            else
+                this.insert(0, 'header:div`panel-heading panel-title');
+        }
+        
+        if (parameters.footer) {
+            if (typeof parameters.footer === 'string')
+                this.add('footer:div`panel-footer', parameters.footer);
+            else
+                this.add('footer:div`panel-footer');
+        }
     
         this.listen_('type', function() {
             this.class('panel panel-' + this.getControlStyle(), 'panel-default panel-link panel-primary panel-success panel-info panel-warning panel-danger');
@@ -11843,11 +11578,6 @@ function Bootstrap(controls) {
         this.text = function(_text) {
             return this.body.text(_text);
         };
-        
-        if (attributes.$text) {
-            this.body.text(attributes.$text);
-            attributes.$text = undefined;
-        }
     };
     Panel.prototype = control_prototype;
     controls.typeRegister('bootstrap.Panel', Panel);
@@ -12157,7 +11887,7 @@ function Bootstrap(controls) {
     if (typeof window !== 'undefined') new Bootstrap(window.controls);
 })();
 
-},{"controls":6}],5:[function(require,module,exports){
+},{"controls":4}],3:[function(require,module,exports){
 var global=typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {};/**
  * marked - a markdown parser
  * Copyright (c) 2011-2013, Christopher Jeffrey. (MIT Licensed)
@@ -13324,7 +13054,7 @@ if (typeof exports === 'object') {
   return this || (typeof window !== 'undefined' ? window : global);
 }());
 
-},{}],6:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 //     controls.js
 //     UI framework, code generation tool
 //     status: proposal, example, valid prototype, under development
@@ -13336,14 +13066,19 @@ if (typeof exports === 'object') {
 (function() { 'use strict';
 
     var controls = {
-        VERSION: '0.6.15'/*#.#.##*/,
+        VERSION: '0.7.01'/*#.#.##*/,
         id_generator: 53504,
         // assignable default template engine
-        template: function(templ) { return new Function('return \'' + templ.replace(/'/g, "\\'") + '\''); },
+        //template: function(templ) { return new Function('return \'' + templ.replace('\n', '\\\n').replace(/'/g, "\\'") + '\''); },
+        template: function(templ) {
+            return new Function('return \'' + templ.replace(/'|\n/g, function(substr) {
+                return {"'":"\\'", "\n":"\\n\\\n"}[substr];
+            }) + '\'');
+        },
         subtypes: {} // Registered subtypes
     };
     
-    var IDENTIFIERS = ',add,attach,attributes,class,data,element,first,id,__type,controls,last,name,each,forEach,parameters,parent,remove,style,';
+    var IDENTIFIERS = ',add,_add,attach,attr,_attr,attrs,attributes,class,controls,data,delete,each,element,findFirst,findLast,first,forEach,id,insert,_insert,__type,last,length,name,parameters,parent,refresh,remove,style,template,';
     var ENCODE_HTML_MATCH = /&(?!#?\w+;)|<|>|"|'|\//g;
     var ENCODE_HTML_PAIRS = { "<": "&#60;", ">": "&#62;", '"': '&#34;', "'": '&#39;', "&": "&#38;", "/": '&#47;' };
     var DECODE_HTML_MATCH = /&#(\d{1,8});/g;    
@@ -13362,8 +13097,8 @@ if (typeof exports === 'object') {
     controls.controlInitialize = function(object, __type, parameters, attributes, outer_template, inner_template) {
         
         if (attributes) {
-            object.name = attributes.$name;
             object.id = (attributes.id) ? attributes.id : (attributes.id = (++controls.id_generator).toString(16)); // set per session uid
+            object.name = attributes.$name;
             
             // default move $prime to $text
             if ('$prime' in attributes) {
@@ -13375,12 +13110,10 @@ if (typeof exports === 'object') {
                 delete attributes.$prime;
             }
             object.attributes = attributes;
-        } else {
-            var id = object.id = (++controls.id_generator).toString(16); // set per session uid
-            object.attributes = {id:id};
-        }
+        } else
+            object.attributes = {id:(object.id = (++controls.id_generator).toString(16))}; // set per session uid
         
-        object.__type       = __type;
+        object.__type       = (__type.indexOf('.') >= 0) ? __type : ('controls.' + __type);
         object.parameters   = parameters || {};
         object.controls     = [];               // This is a collection of nested objects
         
@@ -13479,12 +13212,9 @@ if (typeof exports === 'object') {
      * @returns {controls.Event} Collection of a specified type
      */
     function force_event(object, type, capture) {
-        var events = object.events;
-        if (!events)
-            object.events = events = {};
-
-        var key = (capture) ? ('#'/*capture*/ + type) : type;
-        var event = events[key];
+        var events = object.events || (object.events = {}),
+            key = (capture) ? ('#'/*capture*/ + type) : type,
+            event = events[key];
         if (!event) {
             events[key] = event = new controls.Event(object, type, capture);
 
@@ -13580,15 +13310,16 @@ DOMNodeInsertedIntoDocument,DOMNodeRemoved,DOMNodeRemovedFromDocument,DOMSubtree
             return this;
         },
         listen_: function(call_this/*optional*/, listener) {
-            if (typeof listener === 'function') listener.no_serialize = true;
-            else call_this.no_serialize = true;
+            if (typeof listener === 'function')
+                listener.no_serialize = true;
+            else
+                call_this.no_serialize = true;
             return this.listen.apply(this, arguments);
         },
         removeListener: function(listener) {
             var event = this.event;
             if (event)
                 event.removeListener(listener);
-            
             return this;
         },
         subscribe: function(call_this/*optional*/, listener) {
@@ -13609,7 +13340,6 @@ DOMNodeInsertedIntoDocument,DOMNodeRemoved,DOMNodeRemovedFromDocument,DOMSubtree
             var post_event = this.post_event;
             if (post_event)
                 post_event.removeListener(listener);
-            
             return this;
         },
         raise: function() {
@@ -13702,11 +13432,9 @@ DOMNodeInsertedIntoDocument,DOMNodeRemoved,DOMNodeRemovedFromDocument,DOMSubtree
         array.last_operation = 0;                  // Last state-changing operation
         array.last_changed   = undefined;          // Last changed property name or index
         
-        if (parameters && parameters.adapter) {
-            this.adapter = controls.create(parameters.adapter);
-            if (!this.adapter)
-                throw new TypeError('Invalid data adapter type "' + parameters.adapter + '"!');
-        }
+        if (parameters && parameters.adapter)
+        if (!(this.adapter = controls.create(parameters.adapter)))
+            throw new TypeError('Invalid data adapter type "' + parameters.adapter + '"!');
         
         return array;
     }
@@ -13719,59 +13447,6 @@ DOMNodeInsertedIntoDocument,DOMNodeRemoved,DOMNodeRemovedFromDocument,DOMSubtree
         this.initialize = function(__type, parameters, _attributes, outer_template, inner_template) {
             return controls.controlInitialize(this, __type, parameters, _attributes, outer_template, inner_template);
         };
-        
-        Object.defineProperty(this, 'name', {
-            enumerable: true, 
-            get: function() { return this._name; },
-            set: function(value) {
-                if (IDENTIFIERS.indexOf(',' + value + ',') >= 0)
-                    throw new SyntaxError('Invalid name "' + value + '"!');
-
-                var name = this._name;
-                if (value !== name) {
-                    this._name = value;
-
-                    var parent = this._parent;
-                    if (parent) {
-                        if (name && parent.hasOwnProperty(name) && parent[name] === this)
-                            delete parent[name];
-
-                        if (value)
-                            parent[value] = this;
-                    }
-                }
-            }
-        });
-        
-        // The associated element of control
-        Object.defineProperty(this, 'element', {
-            enumerable: true,
-            get: function() { return this._element; },
-            set: function(attach_to_element) {
-                if (arguments.length === 0)
-                    return this._element;
-
-                var element = this._element;
-                if (attach_to_element !== element) {
-                    this._element = attach_to_element;
-
-                    var events = this.events;
-                    if (events)
-                    for(var event_type in events) {
-                        var event = events[event_type];
-                        if (event.is_dom_event) {
-                            // remove event raiser from detached element
-                            if (element)
-                                element.removeEventListener(event.type, event.raise, event.capture);
-                            // add event raiser as listener for attached element
-                            if (attach_to_element)
-                                attach_to_element.addEventListener(event.type, event.raise, event.capture);
-                        }
-                    }
-                    this.raise('element', attach_to_element);
-                }
-            }
-        });
         
         function setParent(value, index) {
             var parent = this._parent;
@@ -13810,12 +13485,60 @@ DOMNodeInsertedIntoDocument,DOMNodeRemoved,DOMNodeRemovedFromDocument,DOMSubtree
         }
         
         Object.defineProperties(this, {
+            // name of the control
+            name: {
+                enumerable: true, 
+                get: function() { return this._name; },
+                set: function(value) {
+                    if (IDENTIFIERS.indexOf(',' + value + ',') >= 0)
+                        throw new SyntaxError('Invalid name "' + value + '"!');
+
+                    var name = this._name;
+                    if (value !== name) {
+                        this._name = value;
+
+                        var parent = this._parent;
+                        if (parent) {
+                            if (name && parent.hasOwnProperty(name) && parent[name] === this)
+                                delete parent[name];
+
+                            if (value)
+                                parent[value] = this;
+                        }
+                    }
+                }
+            },
+            // The associated element of control
+            element: {
+                enumerable: true,
+                get: function() { return this._element; },
+                set: function(attach_to_element) {
+                    var element = this._element;
+                    if (attach_to_element !== element) {
+                        this._element = attach_to_element;
+
+                        var events = this.events;
+                        if (events)
+                        for(var event_type in events) {
+                            var event = events[event_type];
+                            if (event.is_dom_event) {
+                                // remove event raiser from detached element
+                                if (element)
+                                    element.removeEventListener(event.type, event.raise, event.capture);
+                                // add event raiser as listener for attached element
+                                if (attach_to_element)
+                                    attach_to_element.addEventListener(event.type, event.raise, event.capture);
+                            }
+                        }
+                        this.raise('element', attach_to_element);
+                    }
+                }
+            },
             parent: {
                 enumerable: true,
                 get: function() { return this._parent; },
                 set: setParent
             },
-        
             wrapper: {
                 enumerable: true,
                 get: function() { return this._wrapper; },
@@ -13840,17 +13563,203 @@ DOMNodeInsertedIntoDocument,DOMNodeRemoved,DOMNodeRemovedFromDocument,DOMSubtree
         //                        wrapper_controls.splice(index, 1);
 
                             value_controls.push(this);
-
-                            // TODO value.refresh();
                         }
                     }
                 }
             },
-        
-            length: { enumerable: true, get: function() { return this.controls.length; } },
-            first:  { enumerable: true, get: function() { return this.controls[0]; } },
-            last:   { enumerable: true, get: function() { return this.controls[this.controls.length-1]; } }
+            length: {
+                enumerable: true,
+                get: function() {
+                    return this.controls.length;
+                }
+            }
         });
+        
+        this.find = function(selector, by_attrs, recursive) {
+            if (arguments.length < 3)
+                recursive = true;
+            var controls = this.controls,
+                result = [];
+            if (typeof selector === 'object' || typeof by_attrs === 'object') {
+                for(var i = 0, c = controls.length; i < c; i++) {
+                    var control = controls[i];
+                    // by properties
+                    if (selector)
+                    for(var prop in selector)
+                    if (control[prop] === selector[prop])
+                        result.push(control);
+                    // by attributes
+                    else if (by_attrs) {
+                        var attributes = control.attributes;
+                        for(var prop in by_attrs)
+                        if (attributes[prop] === by_attrs[prop])
+                            result.push(control);
+                    }
+                    // find recursively
+                    else if (recursive) {
+                        var finded = control.find(selector, by_attrs, recursive);
+                        if (finded.length)
+                            result.push.apply(result, finded);
+                    }
+                }
+            } else if (!selector) {
+                return controls[0];
+            } else if (typeof selector === 'string') {
+                return callWithSelector.call(this, this.find, selector);
+            } else if (typeof selector === 'function') {
+                for(var i = 0, c = controls.length; i < c; i++) {
+                    var control = controls[i];
+                    if (selector(control))
+                        result.push(control);
+                    // find recursively
+                    else if (recursive) {
+                        var finded = control.find(selector, by_attrs, recursive);
+                        if (finded.length)
+                            result.push.apply(result, finded);
+                    }
+                }
+            }
+        };
+        
+        this.select = function(selector, by_attrs) {
+            return this.find(selector, by_attrs, false);
+        };
+                
+        this.first = function(selector, by_attrs) {
+            return this.findFirst(selector, by_attrs, false);
+        };
+        
+        /**
+         * 
+         * @param {string,function} selector (string) format name:type`class#id, (object) Control property values for comparing
+         * @param {type} attrs Control attribute values for comparing
+         * @returns {object} matched control
+         */
+        this.findFirst = function(selector, by_attrs, recursive) {
+            if (arguments.length < 3)
+                recursive = true;
+            var controls = this.controls;
+            if (typeof selector === 'object' || typeof by_attrs === 'object') {
+                for(var i = 0, c = controls.length; i < c; i++) {
+                    var control = controls[i];
+                    // by properties
+                    if (selector)
+                    for(var prop in selector)
+                    if (control[prop] === selector[prop])
+                        return control;
+                    // by attributes
+                    if (by_attrs) {
+                        var attributes = control.attributes;
+                        for(var prop in by_attrs)
+                        if (attributes[prop] === by_attrs[prop])
+                            return control;
+                    }
+                    // find recursively
+                    if (recursive) {
+                        var finded = control.findFirst(selector, by_attrs, recursive);
+                        if (finded)
+                            return finded;
+                    }
+                }
+            } else if (!selector) {
+                return controls[0];
+            } else if (typeof selector === 'string') {
+                return callWithSelector.call(this, this.findFirst, selector);
+            } else if (typeof selector === 'function') {
+                for(var i = 0, c = controls.length; i < c; i++) {
+                    var control = controls[i];
+                    if (selector(control))
+                        return control;
+                    // find recursively
+                    if (recursive) {
+                        var finded = control.findFirst(selector, by_attrs, recursive);
+                        if (finded)
+                            return finded;
+                    }
+                }
+            }
+        };
+        
+        this.last = function(selector, by_attrs) {
+            return this.findLast(selector, by_attrs, false);
+        };
+        
+        this.findLast = function(selector, by_attrs, recursive) {
+            if (arguments.length < 3)
+                recursive = true;
+            var controls = this.controls;
+            if (typeof selector === 'object' || typeof by_attrs === 'object') {
+                for(var i = controls.length - 1; i >= 0; i--) {
+                    var control = controls[i];
+                    // by properties
+                    if (selector)
+                    for(var prop in selector)
+                    if (control[prop] === selector[prop])
+                        return control;
+                    // by attributes
+                    if (by_attrs) {
+                        var attributes = control.attributes;
+                        for(var prop in by_attrs)
+                        if (attributes[prop] === by_attrs[prop])
+                            return control;
+                    }
+                    // find recursively
+                    if (recursive) {
+                        var finded = control.findLast(selector, by_attrs, recursive);
+                        if (finded)
+                            return finded;
+                    }
+                }
+            } else if (!selector) {
+                return controls[0];
+            } else if (typeof selector === 'string') {
+                return callWithSelector.call(this, this.findLast, selector);
+            } else if (typeof selector === 'function') {
+                for(var i = controls.length - 1; i >= 0; i--) {
+                    var control = controls[i];
+                    if (selector(control))
+                        return control;
+                    // find recursively
+                    if (recursive) {
+                        var finded = control.findLast(selector, by_attrs, recursive);
+                        if (finded)
+                            return finded;
+                    }
+                }
+            }
+        };
+        
+        function callWithSelector(method, selector) {
+            // name:...
+            var name, type = selector, colonpos = selector.indexOf(':');
+            if (colonpos >= 0) {
+                name = selector.substr(0, colonpos);
+                type = selector.substr(colonpos + 1);
+            }
+            // `...
+            var clss, gravepos = type.indexOf('`');
+            if (gravepos >= 0) {
+                type = selector.substr(0, gravepos);
+                clss = selector.substr(gravepos + 1);
+            }
+            // #...
+            var num, numpos = type.indexOf('#');
+            if (numpos >= 0) {
+                type = selector.substr(0, numpos);
+                num = selector.substr(numpos + 1);
+            }
+            
+            if (type && type.indexOf('.') < 0)
+                type = 'controls.' + type;
+            
+            var by_props, by_attrs;
+            if (type)   (by_props || (by_props = {})).__type = type;
+            if (name)   (by_props || (by_props = {})).name = name;
+            if (clss)   (by_attrs || (by_attrs = {})).class = clss;
+            return method.call(this, by_props, by_attrs);
+        }
+        
+        
         
         // default html template
         this.outer_template = function(it) { return '<div' + it.printAttributes() + '>' + (it.attributes.$text || '') + it.printControls() + '</div>'; };
@@ -13958,24 +13867,24 @@ DOMNodeInsertedIntoDocument,DOMNodeRemoved,DOMNodeRemovedFromDocument,DOMSubtree
                 if (!element.parentNode) {
                     // orphaned element
                     this._element = undefined;
-                }
-                else
-                try {
-                    // Setting .outerHTML breaks hierarchy DOM, so you need a complete re-initialisation bindings to DOM objects.
-                    // Remove wherever possible unnecessary calls .refresh()
+                } else {
+                    try {
+                        // Setting .outerHTML breaks hierarchy DOM, so you need a complete re-initialisation bindings to DOM objects.
+                        // Remove wherever possible unnecessary calls .refresh()
 
-                    var html = this.outerHTML();
-                    if (html !== element.outerHTML) {
-                        this.detachAll();
-                        element.outerHTML = html;
-                        this.attachAll();
+                        var html = this.outerHTML();
+                        if (html !== element.outerHTML) {
+                            this.detachAll();
+                            element.outerHTML = html;
+                            this.attachAll();
+                        }
                     }
-                }
-                catch (e) {
-                    // Uncaught Error: NoModificationAllowedError: DOM Exception 7
-                    //  1. ? xml document
-                    //  2. ? "If the element is the root node" ec orphaned element
-                    this._element = undefined;
+                    catch (e) {
+                        // Uncaught Error: NoModificationAllowedError: DOM Exception 7
+                        //  1. ? xml document
+                        //  2. ? "If the element is the root node" ec orphaned element
+                        this._element = undefined;
+                    }
                 }
             }
             return this;
@@ -14085,10 +13994,7 @@ DOMNodeInsertedIntoDocument,DOMNodeRemoved,DOMNodeRemovedFromDocument,DOMSubtree
 
                 switch(opcode) {
                     case 1:
-                        if (node.childNodes.length === 0)
-                            node.appendChild(fragment);
-                        else
-                            node.insertBefore(node.firstChild, fragment);
+                        (node.childNodes.length === 0) ? node.appendChild(fragment) : node.insertBefore(node.firstChild, fragment);
                         break;
                     case 2:
                         var nodeparent = node.parentNode;
@@ -14115,6 +14021,7 @@ DOMNodeInsertedIntoDocument,DOMNodeRemoved,DOMNodeRemovedFromDocument,DOMSubtree
         this.deleteElement = function() {
             var element = this._element;
             if (element) {
+                this.detachAll();
                 var parent_node = element.parentNode;
                 if (parent_node)
                     parent_node.removeChild(element);
@@ -14137,7 +14044,7 @@ DOMNodeInsertedIntoDocument,DOMNodeRemoved,DOMNodeRemovedFromDocument,DOMSubtree
         // listener {string,function(event)} - event listener function or function body text
         // [capture {bool}] - 
         //
-        this.listen = function(type, call_this/*optional*/, listener, capture/*optional*/) {
+        this.on = this.listen = function(type, call_this/*optional*/, listener, capture/*optional*/) {
             if (typeof(call_this) === 'function') {
                 capture = listener;
                 listener = call_this;
@@ -14150,7 +14057,7 @@ DOMNodeInsertedIntoDocument,DOMNodeRemoved,DOMNodeRemovedFromDocument,DOMSubtree
         };
         
         // set listener and check listener as no_serialize
-        this.listen_ = function(type, call_this, listener, capture) {
+        this.on_ = this.listen_ = function(type, call_this, listener, capture) {
             if (typeof(call_this) === 'function') {
                 capture = listener;
                 listener = call_this;
@@ -14194,14 +14101,13 @@ DOMNodeInsertedIntoDocument,DOMNodeRemoved,DOMNodeRemovedFromDocument,DOMSubtree
         this.parameter = function(name, value) {
             var parameters = this.parameters;
             
-            if (arguments.length > 1) {
-                if (value !== parameters[name]) {
-                    parameters[name] = value;
-                    this.refresh();
-                }
-            }
-            else
+            if (arguments.length <= 1)
                 return parameters[name] || parameters['/'+name];
+            
+            if (value !== parameters[name]) {
+                parameters[name] = value;
+                this.refresh();
+            }
         };
         
         this._parameter = function(name, value) {
@@ -14265,22 +14171,30 @@ DOMNodeInsertedIntoDocument,DOMNodeRemoved,DOMNodeRemovedFromDocument,DOMSubtree
             if (!arguments.length) {
                 var inheritable = '', unheritable = '', parameters = this.parameters;
                 for(var prop in parameters) {
-                    if (prop[0] !== '/') {
-                        // not inheritable parameters
-                        if (unheritable) unheritable += ';';
-                        unheritable += prop + '=' + parameters[prop];
-                    } else {
+                    var value = parameters[prop];
+                    if (typeof value === 'boolean' && value)
+                        value = '';
+                    else  {
+                        if (typeof value !== 'string')
+                            value = String(value);
+                        value = ((value.indexOf(' ') >= 0) ? ('="' + value + '"') : ('=' + value));
+                    }
+                    if (prop[0] === '/') {
                         // inheritable parameters
-                        if (inheritable) inheritable += ';';
-                        inheritable += prop.substr(1) + '=' + parameters[prop];
+                        if (inheritable) inheritable += ' ';
+                        inheritable += prop.substr(1) + value;
+                    } else {    
+                        // not inheritable parameters
+                        if (unheritable) unheritable += ' ';
+                        unheritable += prop + value;
                     }
                 }
                 
                 var type = this.__type;
+                if (unheritable)
+                    type += ' ' + unheritable;
                 if (inheritable)
                     type += '/' + inheritable;
-                if (unheritable.length > 0)
-                    type += '#' + unheritable;
 
                 return type;
             }
@@ -14467,29 +14381,28 @@ DOMNodeInsertedIntoDocument,DOMNodeRemoved,DOMNodeRemovedFromDocument,DOMSubtree
         // $prime - primary parameter to control
         //
         this.insert = function(index, type, /*optional*/ $prime, /*optional*/ attributes, /*optional*/ callback, /*optional*/ this_arg) {
+            
             if (!type)
                 return;
             
             // normalize arguments
-            
             if (typeof $prime === 'function') {
                 this_arg = attributes;
                 callback = $prime;
                 $prime = undefined;
                 attributes = undefined;
-            }
-            
-            if ($prime instanceof Object) {
-                this_arg = callback;
-                callback = attributes;
-                attributes = $prime;
-                $prime = undefined;
-            }
-
-            if (typeof attributes === 'function') {
-                this_arg = callback;
-                callback = attributes;
-                attributes = undefined;
+            } else {
+                if (typeof $prime === 'object' && !Array.isArray($prime)) {
+                    this_arg = callback;
+                    callback = attributes;
+                    attributes = $prime;
+                    $prime = undefined;
+                }
+                if (typeof attributes === 'function') {
+                    this_arg = callback;
+                    callback = attributes;
+                    attributes = undefined;
+                }
             }
             
             if (Array.isArray(type)) {
@@ -14532,7 +14445,7 @@ DOMNodeInsertedIntoDocument,DOMNodeRemoved,DOMNodeRemovedFromDocument,DOMSubtree
                     $prime = undefined;
                 }
             } else {
-                __type = parse_type(type, parameters, attrs),
+                __type = parse_type(type, parameters, attrs);
                 constructor = resolve_ctr(__type, parameters);
             }
 
@@ -14664,7 +14577,7 @@ DOMNodeInsertedIntoDocument,DOMNodeRemoved,DOMNodeRemovedFromDocument,DOMSubtree
     }
     
     /**
-     * Parse type string
+     * Parse type string, revision 2.0
      * 
      * @param {string} type Type with parameters, in format name:namespace.control`class1 classN#parameters/inheritable_parameters
      * @param {object} parameters Object acceptor parsed parameters
@@ -14672,108 +14585,111 @@ DOMNodeInsertedIntoDocument,DOMNodeRemoved,DOMNodeRemovedFromDocument,DOMSubtree
      * @returns {String} Base type string
      */
     function parse_type(type, parameters, attributes) {
-        var start = 0,
-            colonpos = type.indexOf(':'),
-            dotpos = type.indexOf('.'),
-            gravepos = type.indexOf('`'),
-            numpos = type.indexOf('#'),
-            slashpos = type.indexOf('/'),
-            leftpos = type.indexOf('{');
         
-        if (dotpos >= 0 && colonpos > dotpos)
-            colonpos = -1;
-        if (gravepos >= 0) {
-            if (colonpos > gravepos) colonpos = -1;
-            if (dotpos > gravepos) dotpos = -1;
-        }
-        if (numpos >= 0) {
-            if (colonpos > numpos) colonpos = -1;
-            if (dotpos > numpos) dotpos = -1;
-            if (gravepos > numpos) gravepos = -1;
-        }
-        if (slashpos >= 0) {
-            if (colonpos > slashpos) colonpos = -1;
-            if (dotpos > slashpos) dotpos = -1;
-            if (gravepos > slashpos) gravepos = -1;
-        }
-        if (leftpos >= 0) {
-            if (colonpos > leftpos) colonpos = -1;
-            if (dotpos > leftpos) dotpos = -1;
-            if (gravepos > leftpos) gravepos = -1;
-            if (slashpos > leftpos) slashpos = -1;
-        }
-
-         // name:... syntax
-        if (colonpos >= 0) {
-            if (attributes)
-                attributes.$name = type.substr(0, colonpos);
-            start = colonpos + 1;
-        }
-
-        var namespace;
-        // namespace. syntax
-        if (dotpos >= 0) {
-            namespace = type.substr(start, 1 + dotpos - start);
-            start = dotpos + 1;
-        }
-        if (!namespace) namespace = 'controls.';
+        var match = type.match(/\S+?(?=#|\/|`|\s|$|@)/);
+        if (!match)
+            return '';
+        var match = match[0],
+            __type, commapos = match.indexOf(':');
+        if (commapos >= 0) {
+            attributes.$name = match.substr(0, commapos);
+            __type = match.substr(commapos + 1);
+        } else
+            __type = match;
+        if (!__type)
+            __type = 'controls.container';
+        else if (__type.indexOf('.') < 0)
+            __type = 'controls.' + __type;
         
-        var paramsbegin = numpos;
-        if (paramsbegin < 0 || (slashpos >= 0 && slashpos < paramsbegin))   paramsbegin = slashpos;
-        if (paramsbegin < 0 || (leftpos >= 0 && leftpos < paramsbegin))     paramsbegin = leftpos;
-        
-        // __type
-        var __type = namespace + type.substr(start, ((gravepos >= 0) ? gravepos : (paramsbegin >= 0) ? paramsbegin : type.length) - start);
-        
-        // .class1 classN  syntax
-        if (attributes) {
-            var cls = (gravepos < 0) ? '' : (paramsbegin >= 0) ? type.substr(gravepos + 1, paramsbegin - gravepos - 1) : type.substr(gravepos + 1);
-            if (cls || !cls.hasOwnProperty('class'))
-                attributes.class = (attributes.class) ? (attributes.class + ' ' + cls) : cls;
-        }
-        
-        if (leftpos >= 0) {
-            var rightpos = type.lastIndexOf('}');
-            // component source url
-            parameters['#{href}'] = type.substr(leftpos + 1, (rightpos >= 0) ? (rightpos - leftpos - 1) : (type.length - leftpos - 1));
-        }
-        
-        // parse /inheritable parameters
-        if (slashpos >= 0) {
-            var iparams = type.substr(slashpos + 1, ((numpos > slashpos) ? numpos : (leftpos > slashpos) ? leftpos : type.length) - slashpos - 1)
-                .split(';');
-            for(var i = 0, c = iparams.length; i < c; i++) {
-                var param = iparams[i],
-                    eqpos = param.indexOf('=');
-                if (eqpos >= 0)
-                    parameters['/' + param.substr(0, eqpos)] = param.substr(eqpos + 1);
-                else
-                    parameters['/' + param] = true;
+        // parse parameters
+        var params = type.slice(match.length),
+            pos = 0, paramslen = params.length, inheritable = false, style = false;
+        while(pos < paramslen && !style) {
+            switch(params.charAt(pos)) {
+                case ' ':case '\n':case '\t':  // parameters separator
+                    pos++;
+                    break;
+                case '/': // next parameters is inheritable
+                    inheritable = true; pos++;
+                    break;
+                case '`': // reminder of the line is style
+                    style = true; pos++;
+                    break;
+                case '#': // assign identifier
+                    var id_regex = /#.*?(?=#|`|\/|\s|$|@)/g;
+                    id_regex.lastIndex = pos;
+                    var match_id = id_regex.exec(params)[0];
+                    attributes.id = match_id.slice(1);
+                    pos += match_id.length;
+                    break;
+                default:
+                    var par_name_regex = /\S+?(?=(=|#|`|\/|\s|$|@))/g;
+                    par_name_regex.lastIndex = pos;
+                    var par_name_match = par_name_regex.exec(params);
+                    if (!par_name_match)
+                        pos++;
+                    else {
+                        var parname = par_name_match[0],
+                        par_name_after = par_name_match.index + parname.length;
+                        if (par_name_match[1] === '=') {
+                            if (params.charAt(par_name_after + 1) === '"') {
+                                // param="value with spaces"
+                                var quotepos = params.indexOf('"', par_name_after + 2);
+                                while(quotepos >= 0 && quotepos < paramslen - 1 && ' \n\t#/`'.indexOf(params.charAt(quotepos + 1)) < 0)
+                                    quotepos = params.indexOf('"', quotepos + 1);
+                                if (quotepos < 0) {
+                                    // param=" may be \" and no "
+                                    if (inheritable) parname = '/' + parname;
+                                    parameters[parname] = params.substr(par_name_after + 2);
+                                    pos = paramslen;
+                                } else {
+                                    if (inheritable) parname = '/' + parname;
+                                    parameters[parname] = params.slice(par_name_after + 2, quotepos);
+                                    pos = quotepos + 1;
+                                }
+                            } else {
+                                // param=value
+                                var value_regex = /\S*?(?=(#|`|\/|\s|$|@))/g;
+                                value_regex.lastIndex = par_name_after + 1;
+                                var value = value_regex.exec(params)[0];
+                                pos = par_name_after + 1 + value.length;
+                                if (inheritable) parname = '/' + parname;
+                                parameters[parname] = value;
+                            }
+                        } else {
+                            // param
+                            if (inheritable) parname = '/' + parname;
+                            parameters[parname] = true;
+                            pos = par_name_after;
+                        }
+                    }
             }
         }
         
-        // parse #unheritable parameters
-        if (numpos >= 0) {
-            var uparams = type.substr(numpos + 1, ((slashpos > numpos) ? slashpos : (leftpos > numpos) ? leftpos : type.length) - numpos - 1)
-                .split(';');
-            for(var i = 0, c = uparams.length; i < c; i++) {
-                var param = uparams[i],
-                    eqpos = param.indexOf('=');
-                if (eqpos >= 0)
-                    parameters[param.substr(0, eqpos)] = param.substr(eqpos + 1);
-                else
-                    parameters[param] = true;
+        if (style) {
+            var classes = params.length,
+                colonpos = params.indexOf(':', pos);
+            if (colonpos >= 0) {
+                while(' \n\t`'.indexOf(params.charAt(colonpos)) < 0 && colonpos > pos)
+                    colonpos--;
+                classes = colonpos;
             }
+            attributes.class = params.slice(pos, classes);
+            attributes.style = params.slice(classes).trim();
         }
+    
+        // TODO {href} syntax
 
         return __type;
-    };
+    }
     
-    // Resolve __type and parameters to control constructor
-    //
-    // __type - base type, example "controls.Custom"
-    // parameters - parameters parsed from original type
-    //
+    /**
+     *  Resolve __type and parameters to control constructor
+     *  
+     * @param {string} __type Base type, example "controls.custom"
+     * @param {object} parameters Parameters parsed from original type
+     * @returns {object} Control constructor
+     */
     function resolve_ctr(__type, parameters) {
         // after parse and before ctr resolve apply alias
         
@@ -14815,7 +14731,7 @@ DOMNodeInsertedIntoDocument,DOMNodeRemoved,DOMNodeRemovedFromDocument,DOMSubtree
         }
         
         return constructor;
-    };
+    }
     controls.resolveType = resolve_ctr;
     
     // Unresolved type error processing mode
@@ -14832,45 +14748,78 @@ DOMNodeInsertedIntoDocument,DOMNodeRemoved,DOMNodeRemovedFromDocument,DOMSubtree
         }
     };
     
-    // Create control
-    //
-    // syntax: controls.create(type, attributes); controls.create(type, parameters, attributes);
-    //
-    controls.create = function(type, /*optional*/ $prime, /*optional*/ parameters, /*optional*/ attributes, /*optional*/ callback, /*optional*/ this_arg) {
-        var arglen = arguments.length;
-        if (typeof $prime !== 'string' || $prime instanceof Object) {
-            this_arg = callback;
-            callback = attributes;
-            attributes = parameters;
-            parameters = $prime;
-            $prime = undefined;
-            arglen++;
-        }
-        if (typeof parameters === 'function') {
-            this_arg = attributes;
-            callback = parameters;
-            parameters = {};
-            attributes = {};
-            arglen+=2;
-        }
-        else if (typeof attributes === 'function') {
-            this_arg = callback;
-            callback = attributes;
-            attributes = parameters;
-            parameters = {};
-            arglen++;
-        }
-        if (arglen === 3) {
-            attributes = parameters;
-            parameters = {};
-        }
-        
+    /*
+     * Create control from parsed type, parameters and attributes
+     * 
+     * @param {type} type
+     * @param {type} parameters
+     * @param {type} attributes
+     * @returns {object} Created control
+     */
+    controls.createBase = function(type, parameters, attributes) {
         parameters = parameters || {};
+        attributes = attributes || {};
+        
+        var __type = parse_type(type, parameters, attributes),
+            constructor = resolve_ctr(__type, parameters);
+            
+        if (!constructor)
+            throw new TypeError('Type ' + __type + ' not registered!');
+
+        for(var prop in parameters)
+        if (prop[0] === '$')
+            attributes[prop.substr(1)] = parameters[prop];
+                
+        // create object
+        
+        var new_control = (constructor.is_constructor) // constructor or factory method ?
+            ? new constructor(parameters, attributes)
+            : constructor(parameters, attributes);
+        
+        // reflect after creation
+        new_control.raise('type');
+        
+        return new_control;
+    };
+    
+    /*
+     * Create control
+     * 
+     * @param {type} type Type containing the parameters attributes and styles
+     * @param {type} $prime optional, prime value
+     * @param {type} attributes optional
+     * @param {type} callback optional
+     * @param {type} this_arg optional
+     * @returns {object} Created control
+     */
+    controls.create = function(type, /*optional*/ $prime, /*optional*/ attributes, /*optional*/ callback, /*optional*/ this_arg) {
+
+        // normalize arguments
+        if (typeof $prime === 'function') {
+            this_arg = attributes;
+            callback = $prime;
+            $prime = undefined;
+            attributes = undefined;
+        } else {
+            if (typeof $prime === 'object' && !Array.isArray($prime)) {
+                this_arg = callback;
+                callback = attributes;
+                attributes = $prime;
+                $prime = undefined;
+            }
+            if (typeof attributes === 'function') {
+                this_arg = callback;
+                callback = attributes;
+                attributes = undefined;
+            }
+        }
+            
+        var parameters = {};
         attributes = attributes || {};
         
         var __type, constructor;
             
-        if (type[0] === '<') {
+        if (type.charAt(0) === '<') {
             // template
             __type = 'controls.custom';
             constructor = Custom;
@@ -14884,7 +14833,7 @@ DOMNodeInsertedIntoDocument,DOMNodeRemoved,DOMNodeRemovedFromDocument,DOMSubtree
             constructor = resolve_ctr(__type, parameters);
         }
         
-        if ($prime)
+        if ($prime !== undefined)
             attributes.$prime = $prime;
             
         if (!constructor) {
@@ -14896,7 +14845,7 @@ DOMNodeInsertedIntoDocument,DOMNodeRemoved,DOMNodeRemovedFromDocument,DOMSubtree
                 parameters['#{__type}'] = __type;
                 parameters['#{callback}'] = callback;
                 parameters['#{this_arg}'] = this_arg;
-                constructor = resolve_ctr('controls.Stub', parameters);
+                constructor = resolve_ctr('controls.stub', parameters);
             }
         }    
 
@@ -15044,8 +14993,8 @@ c' + tagname + '.prototype = controls.control_prototype;\n'
         }
         
         Function('controls', 'a,abbr,address,article,aside,b,base,bdi,bdo,blockquote,button,canvas,cite,code,col,colgroup,command,datalist,dd,del,details,\
-dfn,div,dl,dt,em,embed,fieldset,figcaption,figure,footer,form,gnome,h1,h2,h3,h4,h5,h6,header,i,iframe,img,ins,kbd,keygen,label,legend,li,link,map,mark,menu,meter,nav,\
-noscript,object,ol,optgroup,option,output,p,pre,progress,ruby,rt,rp,s,samp,script,section,small,span,strong,style,sub,summary,sup,\
+dfn,div,dl,dt,em,embed,fieldset,figcaption,figure,footer,form,g,gnome,h1,h2,h3,h4,h5,h6,header,i,iframe,img,ins,kbd,keygen,label,legend,li,link,map,mark,menu,meter,nav,\
+noscript,object,ol,optgroup,option,output,p,pre,progress,ruby,rt,rp,s,samp,script,section,small,span,strong,style,sub,summary,sup,svg,\
 table,tbody,td,textarea,tfoot,th,thead,time,title,tr,u,ul,var,video,wbr'
             .split(',').map(function(tagname) { return gencode(tagname.toLowerCase(), true); }).join(''))(controls);
     
@@ -15139,7 +15088,7 @@ table,tbody,td,textarea,tfoot,th,thead,time,title,tr,u,ul,var,video,wbr'
             for(var prop in attributes)
                 attrs[prop] = attributes[prop];
         
-            var control = controls.create(parameters['#{type}'], params, attrs);
+            var control = controls.createBase(parameters['#{type}'], params, attrs);
             if (control) {
                 control.class(null, 'stub stub-loading stub-error');
                 this.replaceItself(control);
@@ -15330,7 +15279,289 @@ table,tbody,td,textarea,tfoot,th,thead,time,title,tr,u,ul,var,video,wbr'
         window.controls = controls;
 })();
 
-},{}],7:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
+// doT.js
+// 2011, Laura Doktorova, https://github.com/olado/doT
+// Licensed under the MIT license.
+
+(function() {
+	"use strict";
+
+	var doT = {
+		version: '1.0.1',
+		templateSettings: {
+			evaluate:    /\{\{([\s\S]+?(\}?)+)\}\}/g,
+			interpolate: /\{\{=([\s\S]+?)\}\}/g,
+			encode:      /\{\{!([\s\S]+?)\}\}/g,
+			use:         /\{\{#([\s\S]+?)\}\}/g,
+			useParams:   /(^|[^\w$])def(?:\.|\[[\'\"])([\w$\.]+)(?:[\'\"]\])?\s*\:\s*([\w$\.]+|\"[^\"]+\"|\'[^\']+\'|\{[^\}]+\})/g,
+			define:      /\{\{##\s*([\w\.$]+)\s*(\:|=)([\s\S]+?)#\}\}/g,
+			defineParams:/^\s*([\w$]+):([\s\S]+)/,
+			conditional: /\{\{\?(\?)?\s*([\s\S]*?)\s*\}\}/g,
+			iterate:     /\{\{~\s*(?:\}\}|([\s\S]+?)\s*\:\s*([\w$]+)\s*(?:\:\s*([\w$]+))?\s*\}\})/g,
+			varname:	'it',
+			strip:0,
+			append:		true,
+			selfcontained: false
+		},
+		template: undefined, //fn, compile template
+		compile:  undefined  //fn, for express
+	};
+
+	if (typeof module !== 'undefined' && module.exports) {
+		module.exports = doT;
+	} else if (typeof define === 'function' && define.amd) {
+		define(function(){return doT;});
+	} else {
+		this.doT=doT;
+	}
+
+	function encodeHTMLSource() {
+		var encodeHTMLRules = { "&": "&#38;", "<": "&#60;", ">": "&#62;", '"': '&#34;', "'": '&#39;', "/": '&#47;' },
+			matchHTML = /&(?!#?\w+;)|<|>|"|'|\//g;
+		return function() {
+			return this ? this.replace(matchHTML, function(m) {return encodeHTMLRules[m] || m;}) : this;
+		};
+	}
+	String.prototype.encodeHTML = encodeHTMLSource();
+
+	var startend = {
+		append: { start: "'+(",      end: ")+'",      endencode: "||'').toString().encodeHTML()+'" },
+		split:  { start: "';out+=(", end: ");out+='", endencode: "||'').toString().encodeHTML();out+='"}
+	}, skip = /$^/;
+
+	function resolveDefs(c, block, def) {
+		return ((typeof block === 'string') ? block : block.toString())
+		.replace(c.define || skip, function(m, code, assign, value) {
+			if (code.indexOf('def.') === 0) {
+				code = code.substring(4);
+			}
+			if (!(code in def)) {
+				if (assign === ':') {
+					if (c.defineParams) value.replace(c.defineParams, function(m, param, v) {
+						def[code] = {arg: param, text: v};
+					});
+					if (!(code in def)) def[code]= value;
+				} else {
+					new Function("def", "def['"+code+"']=" + value)(def);
+				}
+			}
+			return '';
+		})
+		.replace(c.use || skip, function(m, code) {
+			if (c.useParams) code = code.replace(c.useParams, function(m, s, d, param) {
+				if (def[d] && def[d].arg && param) {
+					var rw = (d+":"+param).replace(/'|\\/g, '_');
+					def.__exp = def.__exp || {};
+					def.__exp[rw] = def[d].text.replace(new RegExp("(^|[^\\w$])" + def[d].arg + "([^\\w$])", "g"), "$1" + param + "$2");
+					return s + "def.__exp['"+rw+"']";
+				}
+			});
+			var v = new Function("def", "return " + code)(def);
+			return v ? resolveDefs(c, v, def) : v;
+		});
+	}
+
+	function unescape(code) {
+		return code.replace(/\\('|\\)/g, "$1").replace(/[\r\t\n]/g, ' ');
+	}
+
+	doT.template = function(tmpl, c, def) {
+		c = c || doT.templateSettings;
+		var cse = c.append ? startend.append : startend.split, needhtmlencode, sid = 0, indv,
+			str  = (c.use || c.define) ? resolveDefs(c, tmpl, def || {}) : tmpl;
+
+		str = ("var out='" + (c.strip ? str.replace(/(^|\r|\n)\t* +| +\t*(\r|\n|$)/g,' ')
+					.replace(/\r|\n|\t|\/\*[\s\S]*?\*\//g,''): str)
+			.replace(/'|\\/g, '\\$&')
+			.replace(c.interpolate || skip, function(m, code) {
+				return cse.start + unescape(code) + cse.end;
+			})
+			.replace(c.encode || skip, function(m, code) {
+				needhtmlencode = true;
+				return cse.start + unescape(code) + cse.endencode;
+			})
+			.replace(c.conditional || skip, function(m, elsecase, code) {
+				return elsecase ?
+					(code ? "';}else if(" + unescape(code) + "){out+='" : "';}else{out+='") :
+					(code ? "';if(" + unescape(code) + "){out+='" : "';}out+='");
+			})
+			.replace(c.iterate || skip, function(m, iterate, vname, iname) {
+				if (!iterate) return "';} } out+='";
+				sid+=1; indv=iname || "i"+sid; iterate=unescape(iterate);
+				return "';var arr"+sid+"="+iterate+";if(arr"+sid+"){var "+vname+","+indv+"=-1,l"+sid+"=arr"+sid+".length-1;while("+indv+"<l"+sid+"){"
+					+vname+"=arr"+sid+"["+indv+"+=1];out+='";
+			})
+			.replace(c.evaluate || skip, function(m, code) {
+				return "';" + unescape(code) + "out+='";
+			})
+			+ "';return out;")
+			.replace(/\n/g, '\\n').replace(/\t/g, '\\t').replace(/\r/g, '\\r')
+			.replace(/(\s|;|\}|^|\{)out\+='';/g, '$1').replace(/\+''/g, '')
+			.replace(/(\s|;|\}|^|\{)out\+=''\+/g,'$1out+=');
+
+		if (needhtmlencode && c.selfcontained) {
+			str = "String.prototype.encodeHTML=(" + encodeHTMLSource.toString() + "());" + str;
+		}
+		try {
+			return new Function(c.varname, str);
+		} catch (e) {
+			if (typeof console !== 'undefined') console.log("Could not create a template function: " + str);
+			throw e;
+		}
+	};
+
+	doT.compile = function(tmpl, def) {
+		return doT.template(tmpl, null, def);
+	};
+}());
+
+},{}],6:[function(require,module,exports){
+/* doT + auto-compilation of doT templates
+ *
+ * 2012, Laura Doktorova, https://github.com/olado/doT
+ * Licensed under the MIT license
+ *
+ * Compiles .def, .dot, .jst files found under the specified path.
+ * It ignores sub-directories.
+ * Template files can have multiple extensions at the same time.
+ * Files with .def extension can be included in other files via {{#def.name}}
+ * Files with .dot extension are compiled into functions with the same name and
+ * can be accessed as renderer.filename
+ * Files with .jst extension are compiled into .js files. Produced .js file can be
+ * loaded as a commonJS, AMD module, or just installed into a global variable
+ * (default is set to window.render).
+ * All inline defines defined in the .jst file are
+ * compiled into separate functions and are available via _render.filename.definename
+ *
+ * Basic usage:
+ * var dots = require("dot").process({path: "./views"});
+ * dots.mytemplate({foo:"hello world"});
+ *
+ * The above snippet will:
+ * 1. Compile all templates in views folder (.dot, .def, .jst)
+ * 2. Place .js files compiled from .jst templates into the same folder.
+ *    These files can be used with require, i.e. require("./views/mytemplate").
+ * 3. Return an object with functions compiled from .dot templates as its properties.
+ * 4. Render mytemplate template.
+ */
+
+var fs = require("fs"),
+	doT = module.exports = require("./doT");
+
+doT.process = function(options) {
+	//path, destination, global, rendermodule, templateSettings
+	return new InstallDots(options).compileAll();
+};
+
+function InstallDots(o) {
+	this.__path 		= o.path || "./";
+	if (this.__path[this.__path.length-1] !== '/') this.__path += '/';
+	this.__destination	= o.destination || this.__path;
+	if (this.__destination[this.__destination.length-1] !== '/') this.__destination += '/';
+	this.__global		= o.global || "window.render";
+	this.__rendermodule	= o.rendermodule || {};
+	this.__settings 	= o.templateSettings ? copy(o.templateSettings, copy(doT.templateSettings)) : undefined;
+	this.__includes		= {};
+}
+
+InstallDots.prototype.compileToFile = function(path, template, def) {
+	def = def || {};
+	var modulename = path.substring(path.lastIndexOf("/")+1, path.lastIndexOf("."))
+		, defs = copy(this.__includes, copy(def))
+		, settings = this.__settings || doT.templateSettings
+		, compileoptions = copy(settings)
+		, defaultcompiled = doT.template(template, settings, defs)
+		, exports = []
+		, compiled = ""
+		, fn;
+
+	for (var property in defs) {
+		if (defs[property] !== def[property] && defs[property] !== this.__includes[property]) {
+			fn = undefined;
+			if (typeof defs[property] === 'string') {
+				fn = doT.template(defs[property], settings, defs);
+			} else if (typeof defs[property] === 'function') {
+				fn = defs[property];
+			} else if (defs[property].arg) {
+				compileoptions.varname = defs[property].arg;
+				fn = doT.template(defs[property].text, compileoptions, defs);
+			}
+			if (fn) {
+				compiled += fn.toString().replace('anonymous', property);
+				exports.push(property);
+			}
+		}
+	}
+	compiled += defaultcompiled.toString().replace('anonymous', modulename);
+	fs.writeFileSync(path, "(function(){" + compiled
+		+ "var itself=" + modulename + ";"
+		+ addexports(exports)
+		+ "if(typeof module!=='undefined' && module.exports) module.exports=itself;else if(typeof define==='function')define(function(){return itself;});else {"
+		+ this.__global + "=" + this.__global + "||{};" + this.__global + "['" + modulename + "']=itself;}}());");
+};
+
+function addexports(exports) {
+	for (var ret ='', i=0; i< exports.length; i++) {
+		ret += "itself." + exports[i]+ "=" + exports[i]+";";
+	}
+	return ret;
+}
+
+function copy(o, to) {
+	to = to || {};
+	for (var property in o) {
+		to[property] = o[property];
+	}
+	return to;
+}
+
+function readdata(path) {
+	var data = fs.readFileSync(path);
+	if (data) return data.toString();
+	console.log("problems with " + path);
+}
+
+InstallDots.prototype.compilePath = function(path) {
+	var data = readdata(path);
+	if (data) {
+		return doT.template(data,
+					this.__settings || doT.templateSettings,
+					copy(this.__includes));
+	}
+};
+
+InstallDots.prototype.compileAll = function() {
+	console.log("Compiling all doT templates...");
+
+	var defFolder = this.__path,
+		sources = fs.readdirSync(defFolder),
+		k, l, name;
+
+	for( k = 0, l = sources.length; k < l; k++) {
+		name = sources[k];
+		if (/\.def(\.dot|\.jst)?$/.test(name)) {
+			console.log("Loaded def " + name);
+			this.__includes[name.substring(0, name.indexOf('.'))] = readdata(defFolder + name);
+		}
+	}
+
+	for( k = 0, l = sources.length; k < l; k++) {
+		name = sources[k];
+		if (/\.dot(\.def|\.jst)?$/.test(name)) {
+			console.log("Compiling " + name + " to function");
+			this.__rendermodule[name.substring(0, name.indexOf('.'))] = this.compilePath(defFolder + name);
+		}
+		if (/\.jst(\.dot|\.def)?$/.test(name)) {
+			console.log("Compiling " + name + " to file");
+			this.compileToFile(this.__destination + name.substring(0, name.indexOf('.')) + '.js',
+					readdata(defFolder + name));
+		}
+	}
+	return this.__rendermodule;
+};
+
+},{"./doT":5,"fs":7}],7:[function(require,module,exports){
 
 },{}]},{},[1])
 ;
@@ -15350,7 +15581,7 @@ function initialize() {
     
     function NavBar(parameters, attributes) {
         attributes.role = 'navigation';
-        this.initialize('controls.navbar', parameters, attributes, nav_template, $ENV.default_inner_template)
+        this.initialize('controls.navbar', parameters, attributes, $ENV.getDefaultTemplate('nav'), $ENV.getDefaultTemplate())
             .class('navbar navbar-default');
 
         // text contains two parts separated by '***', first part non togglable, second part is togglable
@@ -15375,46 +15606,73 @@ return '<div' + it.printAttributes() + '>\
         // Collapsible part
         
         this.add('collapse:div`collapse navbar-collapse navbar-ex1-collapse')
-            .template($ENV.default_template, $ENV.default_inner_template);
+            .template($ENV.getDefaultTemplate('div'), $ENV.getDefaultTemplate());
         $DOC.processContent(this.collapse, parts.slice(-1)[0]);
         
-        this.applyPatches = function() {
+        this.applyElement = function() {
             var element = this._element;
             if (element) {
-                var $e = $(element);
-                $e.find('.navbar-collapse > ul').addClass('nav navbar-nav');
                 
-                var $dm = $e.find('ul ul');
-                $dm.addClass('dropdown-menu');
-                var $d = $dm.parent();
-                $d.addClass('dropdown');
-                var toggle = $d.find('> a');
-                if (toggle.length) {
-                    toggle.addClass('dropdown-toggle');
-                    toggle.attr('data-toggle', 'dropdown');
-                    toggle.attr('href', '#');
-                    if (toggle.html().indexOf('<b class="caret"></b>') <= 0)
-                        toggle.append('<b class="caret"></b>');
+                var nav_uls = element.querySelectorAll('.navbar-collapse > ul');
+                for(var i = 0, ci = nav_uls.length; i < ci; i++) {
+                    var nav_ul = nav_uls[i],
+                        clss = nav_ul.classList;
+                    clss.add('nav');
+                    clss.add('navbar-nav');
+                }
+                
+                var dropdownmenus = element.querySelectorAll('ul ul');
+                for(var j = 0, c = dropdownmenus.length; j < c; j++) {
+                    var dropdownmenu = dropdownmenus[j];
+                    dropdownmenu.classList.add('dropdown-menu');
 
-                    // activate menu item of the current page
-                    var loc = window.location.href.toLowerCase();
-                    $e.find('ul li a').each(function(i,a) {
-                        var href = (a.href || '').toLowerCase();
-                        if (href === loc || loc.split(href).concat(href.split(loc)).some(function(frag){return frag && ('index.htm,index.html'.indexOf(frag) >= 0); }))
-                            $(a).parents('li').addClass('active');
-                    });
+                    var dropdown = dropdownmenu.parentElement;
+                    dropdown.classList.add('dropdown');
+                    var toggle = dropdown.getElementsByTagName('a')[0];
+                    if (toggle) {
+                        toggle.classList.add('dropdown-toggle');
+                        toggle.setAttribute('data-toggle', 'dropdown');
+                        toggle.setAttribute('href', '#');
+                        if (toggle.innerHTML.indexOf('<b class="caret"></b>') <= 0)
+                            toggle.insertAdjacentHTML('beforeend', '<b class="caret"></b>');
+                    }
+                }
+
+                var current_location = window.location.href.toLowerCase().replace(/(^.*:)|(\/index.htm$)|(\/index.html$)|(#$)/g, ''),
+                    current_location_segs = current_location.split('/');
+
+                var links = element.querySelectorAll('a:not([href="#"])');
+                for(var k = 0, ck = links.length; k < ck; k++) {
+                    var link = links[k],
+                        compare = link.href.toLowerCase().replace(/(^.*:)|(\/index.htm$)|(\/index.html$)|(#$)/g, '');
+                    if (compare === current_location)
+                        activateMenuItemItems(link);
+                    else {
+                        var compare_segs = compare.split('/'),
+                            matched = true;
+                        for(var l = 0, cl = compare_segs.length; l < cl && matched; l++)
+                        if (compare_segs[l] !== current_location_segs[l])
+                            matched = false;
+                        if (matched)
+                            activateMenuItemItems(link);
+                    }
                 }
             }
         };
-        
+                
         this.listen('element', function() {
-            this.applyPatches();
+            this.applyElement();
         });
+        
+        function activateMenuItemItems(link, top) {
+            while(link.parentElement) {
+                link = link.parentElement;
+                if (link.tagName === 'LI')
+                    link.classList.add('active');
+            }
+        }
     };
     NavBar.prototype = controls.control_prototype;
-    function nav_template(it) {
-        return '<nav' + it.printAttributes() + '>' + $ENV.marked( (it.attributes.$text || "") + it.controls.map(function(control) { return control.wrappedHTML(); }).join("") ) + '</nav>';
-    };
     controls.typeRegister('navbar', NavBar);
 
 }})();
@@ -15438,7 +15696,7 @@ function initialize() {
     // control + auto-css pair factory
     function  Felement(__type, parameters, attributes, css) {
         
-        var control = controls.create(__type, parameters, attributes);
+        var control = controls.createBase(__type, parameters, attributes);
         
         // >> parse style from parameters 
         
@@ -15485,7 +15743,7 @@ function initialize() {
     // styled block div factory
     function Block(parameters, attributes) {
         var control = Felement('div', parameters, attributes);
-        control.template($ENV.default_template, $ENV.default_inner_template);
+        control.template($ENV.getDefaultTemplate('div'), $ENV.getDefaultTemplate());
         process_inner_text(control);
         return control;
     };
@@ -15516,7 +15774,7 @@ function initialize() {
     function  Off(parameters, attributes) {
         var off_mode = $DOC.components_off;
         $DOC.components_off = true;
-        var off_text = controls.create('container', parameters, attributes);
+        var off_text = controls.createBase('container', parameters, attributes);
         $DOC.components_off = off_mode;
         return off_text;
     }
@@ -15524,7 +15782,7 @@ function initialize() {
     
     
     function  Encode(parameters, attributes) {
-        var control = controls.create('container', parameters, attributes);
+        var control = controls.createBase('container', parameters, attributes);
         control.template(html_encode, html_encode);
         process_inner_text(control);
         return control;
@@ -15536,7 +15794,7 @@ function initialize() {
     
     
     function  Decode(parameters, attributes) {
-        var control = controls.create('container', parameters, attributes);
+        var control = controls.createBase('container', parameters, attributes);
         control.template(html_decode, html_decode);
         process_inner_text(control);
         return control;
@@ -15548,7 +15806,7 @@ function initialize() {
     
     
     function  Escape(parameters, attributes) {
-        var control = controls.create('container', parameters, attributes);
+        var control = controls.createBase('container', parameters, attributes);
         control.template(escape_template, escape_template);
         process_inner_text(control);
         return control;
@@ -15579,92 +15837,56 @@ var bootstrap = controls.bootstrap;
     
     // Panel
     
-    var known_params = 'style header footer default info link success primary warning danger';
     function Panel(parameters, attributes) {
         
-        var panel = controls.create('bootstrap.Panel', parameters, attributes);
-        
-        // look for header in parameters
-        for(var prop in parameters)
-        if (known_params.indexOf(prop) < 0 || prop === 'header') {
-            panel.header.text(prop);
-            break;
-        }
-        
-         if (parameters.footer)
-            panel.footer.text(parameters.footer);
-            
+        var panel = controls.createBase('bootstrap.Panel', parameters, attributes);
+
         var body = panel.body;
-        $DOC.processContent(body, body.text());
-        body.text('');
-        
-        // process markup template:
-        body.template($ENV.default_template, $ENV.default_inner_template);
+        $DOC.processContent(body, body.attributes.$text);
+        delete body.attributes.$text;
+        body.template($ENV.getDefaultTemplate('div'), $ENV.getDefaultTemplate());
         
         return panel;
     };
     controls.factoryRegister('panel', Panel);
     
     
-    function iPanel(parameters, attributes) {
-        var control = Panel(parameters, attributes);
-        control.style('display:inline-block;' + control.style());
-        return control;
-    };
-    controls.factoryRegister('ipanel', iPanel);
-    
-    
     // Collapse
     
     function Collapse(parameters, attributes) {
         
-        controls.controlInitialize(this, 'collapse', parameters, attributes, $ENV.default_template, $ENV.default_inner_template);
+        var start_collapsed = parameters.collapse || parameters.collapsed,
+            header = parameters.header;
         
-        var in_panel = this.parameter('panel');
-        var panel_class = (typeof in_panel === 'string') ? in_panel : undefined;
-        var start_collapsed = parameters.collapse || parameters.collapsed;
+        var body = 
+        this.initialize('collapse', parameters, attributes, $ENV.getDefaultTemplate('div'), $ENV.getDefaultTemplate())
+            ._class('collapse-panel panel panel-' + this.getControlStyle())
+            ._add('header:div', {
+                        class: 'panel-heading collapse-header',
+                'data-toggle': 'collapse',
+                        $text: '<a href="#" class="panel-title">' + (header || '') + '</a>'
+            })
+            .add('collapse:div', {class:'panel-collapse collapse collapse-body' + (start_collapsed ? '' : ' in')})
+            .add('body:div', {class:'panel-body'});
+        this.header.attributes['data-target'] = '#' + this.collapse.id;
         
-        for(var prop in parameters)
-        if (prop.substr(0,6) === 'panel-')
-            panel_class = prop;
-        
-        this.class('collapse-panel' + (in_panel || panel_class ? ' panel ' + (panel_class || 'panel-default') : ''));
-        
-        // subcontrols
-        var collapse = this.add('collapse:div', {class:'panel-collapse collapse collapse-body' + (start_collapsed ? '' : ' in')}),
-            content = collapse.add('div', {class:'panel-body'}),
-            header = this.insert(0, 'header:div',
-        {
-                    class: 'panel-heading collapse-header',
-            'data-toggle': 'collapse',
-            'data-target': '#'+collapse.id,
-                    $text: '<a href="#" class="panel-title">' + (this.parameter('title') || Object.keys(parameters)[0] || '') + '</a>'
-        });
-        
-        $DOC.processContent(content, this.text());
+        body.template($ENV.getDefaultTemplate('div'), $ENV.getDefaultTemplate());
+        $DOC.processContent(body, this.text());
         this.text('');
         
         // process markup template:
-        content.template($ENV.default_template, $ENV.default_inner_template);
+        
     };
     Collapse.prototype = bootstrap.control_prototype;
     controls.typeRegister('collapse', Collapse);
-    
-    
-    function iCollapse(parameters, attributes) {
-        var control = Collapse(parameters, attributes);
-        control.style('display:inline-block;' + control.style());
-        return control;
-    };
-    controls.factoryRegister('icollapse', iCollapse);
     
     
     // Alert
     
     function Alert(parameters, attributes) {
         
-        controls.controlInitialize(this, 'alert', parameters, attributes, $ENV.default_template, $ENV.default_inner_template);
-        this.class('alert alert-' + this.getControlStyle() + ' fade in');
+        this.initialize('alert', parameters, attributes, $ENV.getDefaultTemplate('div'), $ENV.getDefaultTemplate())
+            .class('alert alert-' + this.getControlStyle() + ' fade in');
         
         // process markup at this level
         var this_text = this.text();
@@ -15675,20 +15897,12 @@ var bootstrap = controls.bootstrap;
     controls.typeRegister('alert', Alert);
     
     
-    function iAlert(parameters, attributes) {
-        var control = Alert(parameters, attributes);
-        control.style('display:inline-block;' + control.style());
-        return control;
-    };
-    controls.factoryRegister('ialert', iAlert);
-    
-    
     // Well
     
     function Well(parameters, attributes) {
         
-        controls.controlInitialize(this, 'well', parameters, attributes, $ENV.default_template, $ENV.default_inner_template);
-        this.class('well');
+        this.initialize('well', parameters, attributes, $ENV.getDefaultTemplate('div'), $ENV.getDefaultTemplate())
+            .class('well');
         
         var size = this.getControlSize();
         if (size === 'small')
@@ -15702,15 +15916,7 @@ var bootstrap = controls.bootstrap;
     };
     Well.prototype = bootstrap.control_prototype;
     controls.typeRegister('well', Well);
-    
-    
-    function iWell(parameters, attributes) {
-        var control = Alert(parameters, attributes);
-        control.style('display:inline-block;' + control.style());
-        return control;
-    };
-    controls.factoryRegister('iwell', iWell);
-    
+   
     
 }})();
 
@@ -15730,30 +15936,27 @@ function initialize() {
 
     function CTabPanel(parameters, attributes) {
         
-        controls.controlInitialize(this, 'tabpanel', parameters, attributes);
-        this.class('tabpanel');
+        this.initialize('controls.tabpanel', parameters, attributes)
+            .class('tabpanel');
         
-        // subcontrols
-        var header = this.add('header:bootstrap.TabPanelHeader');
-        var body = this.add('content:bootstrap.TabPanelBody', {class:'panel-body'});
-        
+        var header = this.add('header:bootstrap.TabPanelHeader'),
+            body = this.add('body:bootstrap.TabPanelBody`panel-body');
         
         // place tabs on this.content panel
-        $DOC.processContent(body, this.attributes.$text);
-        this.attributes.$text = '';
+        $DOC.processContent(body, attributes.$text);
+        attributes.$text = '';
         
         var found_active = false;
-        for(var i = 0, c = body.length; i < c; i++) {
-            var tabpage = body.controls[i];
+        body.each(function(tabpage) {
             if (tabpage.__type === 'bootstrap.TabPage') {
-                var tabheader = this.header.add('bootstrap.TabHeader', {$href:'#'+tabpage.id, $text:tabpage.Caption});
+                var tabheader = header.add('bootstrap.TabHeader', {$href:'#' + tabpage.id, $text:tabpage.parameter('header')});
                 if (tabpage.parameters.active) {
                     found_active = true;
                     tabheader.class('active');
                     tabpage.class('active in');
                 }
             }
-        }
+        });
         
         if (!found_active && header.length) {
             header.first.class('active');
@@ -15769,10 +15972,9 @@ function initialize() {
         // create and customize bootstrap.TabPage
         
         // create control
-        var bootstrap_tabpage = controls.create('bootstrap.TabPage', parameters, attributes);
+        var bootstrap_tabpage = controls.createBase('bootstrap.TabPage', parameters, attributes);
         
         // first #parameter name - tab caption
-        bootstrap_tabpage.Caption = Object.keys(parameters)[0];
         
         // Here: this control is wrapped with HTML and markup not be processed.
         // To process the markup at this level:
@@ -15782,7 +15984,7 @@ function initialize() {
         $DOC.processContent(bootstrap_tabpage, this_text);
         
         // process markup template:
-        bootstrap_tabpage.template($ENV.default_template, $ENV.default_inner_template);
+        bootstrap_tabpage.template($ENV.getDefaultTemplate('div'), $ENV.getDefaultTemplate());
 
         return bootstrap_tabpage;
     }
@@ -15916,7 +16118,7 @@ function initialize() {
 
     function FooterLayout(parameters, attributes) {
         
-        controls.controlInitialize(this, 'footer-layout', parameters, attributes, $ENV.default_template, $ENV.default_inner_template);
+        this.initialize('footer-layout', parameters, attributes, $ENV.getDefaultTemplate('div'), $ENV.getDefaultTemplate());
         
         var media = this.parameter('media'),        // media selector
             padding = this.parameter('padding'),    // padding parameter
@@ -16030,7 +16232,7 @@ function initialize() {
     $DOC.addTextContainer = function(control, text) {
         
         // container.outerHTML() returns text as is
-        var container = control.add('container', {$text:text});
+        var container = control.add('container', text);
         
         // if text contains template then compile to getText function
         var pos = text.indexOf('{{');
@@ -16041,89 +16243,143 @@ function initialize() {
     };
     
     // $DOC.components_off - turn off filters and component translation
-    $DOC.processContent = function(collection, content) {
+    $DOC.processContent = function(collection, text) {
         
-        if (!content)
+        if (!text)
             return;
         
         if (this.components_off) {
-            this.addTextContainer(collection, content);
+            this.addTextContainer(collection, text);
             return;
         }
         
-        // 1. check substitutions
+        // 1. apply filters
+        
         var filters = this.filters;
         for(var i in filters) {
             var subst = filters[i];
-            content = content.replace(subst.regex, subst);
+            text = text.replace(subst.regex, subst);
         }
 
-        // 2. Look for components
-        var content = content.split(/(%\S{1,128})((?:#.*)?\([\S\s]*?\)\1)/gm);
-        // todo replace \S [^\r\n\t @#\$%\^&\*\!~`\'\"\\|\/\?<>\{\}\[\]\(\)-_=\+]
-        // \([^\(\)]*?\) - exclude matching the parts of multiple patterns, error: a()a b()b -> a()b
-
-        var buffered_text = '';
-        for(var i = 0, c = content.length; i < c; i++) {
-            var frag = content[i];
-            if (!frag) continue;
-            if (i < c-1 && frag[0] === '%') {
-                var next = content[i+1];
-                if (next.slice(-frag.length - 1) === ')' + frag) {
+        // 2. Look for [] brackets not in string literals
+        
+        // enumerate string literals
+        var literalpos = enumerateKnownPatterns(text, 0),
+            lcurrent = 0, rcurrent = 0, llength = literalpos.length;
+        
+        // iterate brackets
+        var text_start = 0,
+            stack = [], level = 0, open_tag_pos, open_tag_len,
+            left_bracket = text.indexOf('[');
+        while(left_bracket >= 0) {
             
-                    var parpos = next.indexOf('('),
-                        params = next.substr(0, parpos),
-                        numberpos = params.indexOf('#'),
-                        tag = frag.substr(1);
+            // check if not in literals
+            while(lcurrent < llength && literalpos[lcurrent + 1] < left_bracket)
+                lcurrent += 2;
+            if (lcurrent >= llength || left_bracket < literalpos[lcurrent] || left_bracket >= literalpos[lcurrent + 1]) {
+            
+                var right_bracket_found = false,
+                    right_bracket = text.indexOf(']', left_bracket + 1);
+                while(!right_bracket_found && right_bracket >= 0) {
 
-                    if (parpos >= 0 && (!params || numberpos === 0)) {
-                        var inner_text = next.substr(parpos + 1, next.length - frag.length - parpos - 2);
-                        i++;
-
-                        // lookup control
-                        try {
-                            // pass inner text to control
-                            var control = controls.createOrStub(tag+params, {$text: inner_text});
-                            if (control) {
-                                // flush buffer
-                                if (buffered_text/* && (buffered_text.length > 16 || buffered_text.trim())*/) {
-                                    this.addTextContainer(collection, buffered_text);
-                                    buffered_text = '';
-                                }
-
-                                collection.add(control);
-
-                                // create stub loader
-                                if (control.isStub) {
-                                    control.listen('control', function(control) {
-                                        // raise 'com' event
-                                        var com = $DOC.events.component;
-                                        if (com)
-                                            com.raise(control);
-                                    });
-                                    new stubResLoader(control);
-                                }
-                                
-                                // raise 'com' event
-                                var com = $DOC.events.component;
-                                if (com)
-                                    com.raise(control);
+                    // check if not in literals
+                    while(rcurrent < llength && literalpos[rcurrent + 1] < right_bracket)
+                        rcurrent += 2;
+                    if (rcurrent >= llength || right_bracket < literalpos[rcurrent] || right_bracket >= literalpos[rcurrent + 1]) {
+                        
+                        // [...] [/...] [.../]
+                        
+                        var is_one_pair = text.charAt(right_bracket - 1) === '/', // one pair brackets [.../]
+                            is_close_tag = text.charAt(left_bracket + 1) === '/'; // close tag brackets [/...]
+                        if (is_close_tag) {
+                            // is close tag - find complimentary open tag
+                            var close_tag = text.slice(left_bracket + 2, right_bracket),
+                                level = stack.lastIndexOf(close_tag);
+                            if (level === 0) {
+                                // add text before bbcode
+                                if (open_tag_pos > text_start)
+                                    this.addTextContainer(collection, text.slice(text_start, open_tag_pos));
+                                text_start = right_bracket + 1;
+                                // add component
+                                AddCom(is_one_pair, open_tag_pos, open_tag_len, left_bracket, right_bracket - left_bracket + 1);
                             }
-                            else
-                                collection.add('p', {$text:'&#60;' + tag + '?&#62;'});
-
-                            continue;
-                        } catch (e) { console.log(e); } // error?
+                            else if (level < 0)
+                                level = 0;
+                            stack.length = level;
+                        } else {
+                            if (level === 0) {
+                                open_tag_pos = left_bracket;
+                                open_tag_len = right_bracket - left_bracket + 1;
+                            }
+                            if (is_one_pair) {
+                                // [.../] tag
+                                if (level === 0) {
+                                    // add text before bbcode
+                                    if (open_tag_pos > text_start)
+                                        this.addTextContainer(collection, text.slice(text_start, open_tag_pos));
+                                    text_start = right_bracket + 1;
+                                    // add component
+                                    AddCom(is_one_pair, open_tag_pos, open_tag_len - 1, open_tag_pos, open_tag_len - 1);
+                                }
+                            } else {
+                                // push open tag
+                                var opentag = text.slice(left_bracket + 1, right_bracket),
+                                    __type = opentag.match(/\S+?(?=#|@|\/|`|\s|$)/)[0].split(':');
+                                stack.push(__type.pop());
+                                level++;
+                            }
+                        }
+                        right_bracket_found = true;
                     }
+                    right_bracket++;
+                    right_bracket = text.indexOf(']', right_bracket);
                 }
             }
-            buffered_text += frag;
+            left_bracket++;
+            left_bracket = text.indexOf('[', left_bracket);
         }
         
-        // flush buffer
-        if (buffered_text/* && (buffered_text.length > 16 || buffered_text.trim())*/)
-            this.addTextContainer(collection, buffered_text);
+        // remaining text at end
+        if (text_start < text.length)
+            this.addTextContainer(collection, text.slice(text_start));
+            
+        function AddCom(is_one_pair, open_tag_pos, open_tag_len, close_tag_pos, close_tag_len) {
+            var opentag = is_one_pair ? text.substr(open_tag_pos + 1, open_tag_len - 3) : text.substr(open_tag_pos + 1, open_tag_len - 2);
+            try {
+                var control = controls.createOrStub(opentag, text.slice(open_tag_pos + open_tag_len, close_tag_pos));
+                if (control) {
+                    collection.add(control);
+
+                    // create stub loader
+                    if (control.isStub) {
+                        control.listen('control', function(control) {
+                            // raise 'com' event
+                            var com = $DOC.events.component;
+                            if (com)
+                                com.raise(control);
+                        });
+                        new stubResLoader(control);
+                    }
+
+                    // raise 'com' event
+                    var com = $DOC.events.component;
+                    if (com)
+                        com.raise(control);
+                }
+                else
+                    collection.add('p', '&#60;?&#62;');
+            } catch (e) { console.log(e); } // error?
+        }
     };
+    
+    // enumerate "string literal" and [](href)
+    function enumerateKnownPatterns(text, start_from) {
+        var lregex = /("[\s\S]*?")|(\[[^\[\]\n]*?\]\([^\(\)\n]*?\))/g, literalpos = [], sresult;
+        lregex.lastIndex = start_from;
+        while(sresult = lregex.exec(text))
+            literalpos.push(sresult.index, lregex.lastIndex);
+        return literalpos;
+    }
     
     $DOC.processTextNode = processTextNode;
     function processTextNode(text_node, value) {
@@ -16139,15 +16395,32 @@ function initialize() {
             }
         }
         
-        var control, text = (arguments.length > 1) ? value : text_node.nodeValue, first_char = text[0], body = document.body, section_name;
-        if (' \n\t[@$&*#'.indexOf(first_char) < 0) {
+        var control,
+            text = (arguments.length > 1) ? value : text_node.nodeValue,
+            first_char = text[0],
+            body = document.body,
+            section_name;
+        if (' \n\t`@$&*#(){}-%^~"|\/\\'.indexOf(first_char) < 0) {
             try {
-                if (first_char === '%') {
-                    // <--%namespace.cid#params( ... )%namespace.cid-->
-                    // \1 cid \2 #params \3 content
-                    var match = text.match(/^(%(?:[^ \t\n\(]{1,128}\.)?[^ \t\n\(]{1,128})(#[^\t\n\(]{1,512})?\(([\S\s]*)\)\1$/);
-                    if (match) {
-                        control = controls.createOrStub(match[1].slice(1) + (match[2] || ''), {$text: match[3]});
+                if (first_char === '[') {
+                    // <--[namespace.cid params] ... -->
+                    var literalpos = enumerateKnownPatterns(text, 1),
+                        rcurrent = 0, llength = literalpos.length,
+                        right_bracket_found = false,
+                    right_bracket = text.indexOf(']', 1);
+                    while(!right_bracket_found && right_bracket >= 0) {
+                        // check if not in literals
+                        while(rcurrent < llength && literalpos[rcurrent + 1] < right_bracket)
+                            rcurrent += 2;
+                        if (rcurrent >= llength || right_bracket < literalpos[rcurrent] || right_bracket >= literalpos[rcurrent + 1]) {
+                            right_bracket_found = true;
+                            
+                            var com_definition = text.slice(1, right_bracket),
+                                com_content =  text.slice(right_bracket + 1);
+                            control = controls.createOrStub(com_definition, com_content);
+                        }
+                        right_bracket++;
+                        right_bracket = text.indexOf(']', right_bracket);
                     }
                 } else if (first_char === '!') {
                     // <!--!sectionname--> - section remover
@@ -16176,7 +16449,7 @@ function initialize() {
                             control = controls.create('div', {class:section_name});
                             control.name = section_name;
                             $DOC.addSection(section_name, control);
-                            control.template($ENV.default_template, $ENV.default_inner_template);
+                            control.template($ENV.getDefaultTemplate('div'), $ENV.getDefaultTemplate());
                             $DOC.processContent(control, section_value);
                         }
                     }
@@ -16259,7 +16532,7 @@ function initialize() {
 
                     var section_control = cbody.add('div', {class:name});
                     section_control.name = name;
-                    section_control.template($ENV.default_template, $ENV.default_inner_template);
+                    section_control.template($ENV.getDefaultTemplate('div'), $ENV.getDefaultTemplate());
                     $DOC.processContent(section_control, content);
 
                     // create dom element and place in a definite order
@@ -16323,7 +16596,7 @@ function initialize() {
         
         var processed_nodes = [];
         
-        if ($DOC.auto) {
+        if ($DOC.mode) {
             
             // html
             

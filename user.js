@@ -1,7 +1,7 @@
 (function() {
 
 $DOC.sections['fixed-top-bar'] = 
-'%navbar(\
+'[navbar]\
 [Главная]({{=$DOC.root}}главная)\n\
 ***\
 * [Технология]({{=$DOC.root}}главная)\n\
@@ -9,7 +9,7 @@ $DOC.sections['fixed-top-bar'] =
  * [Редактор]({{=$DOC.root}}редактор)\n\
  * [Формат файлов]({{=$DOC.root}}формат-файлов)\n\
  * [FAQ]({{=$DOC.root}}faq)\n\
-)%navbar';
+[/navbar]';
 
 $DOC.sections['header-panel'] =
 '# Markdown webdocs\n\
@@ -19,16 +19,16 @@ $DOC.sections['header-panel'] =
 
 if ($OPT.editable) {
     $DOC.sections['footer-panel'] =
-'%footer-layout#scheme=line(\
+'[footer-layout scheme=line]\
 * © 2013 [docs-ru on GitHub](https://github.com/aplib/docs-ru) Artistic license 2.0\n\
 ***\n\
 * [Редактировать эту страницу](?edit)\
-)%footer-layout';
+[/footer-layout]';
 } else {
     $DOC.sections['footer-panel'] =
-'%footer-layout#scheme=line(\
+'[footer-layout scheme=line]\
 * © 2013 [docs-ru on GitHub](https://github.com/aplib/docs-ru) Artistic license 2.0\
-)%footer-layout';
+[/footer-layout]';
 }
 
 })();
