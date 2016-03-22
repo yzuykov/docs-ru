@@ -65,7 +65,7 @@ function showCurlCommand(mergedEndpoint) {
 
   curlCommandDiv.textContent = curlCommand;
   
-	var	variantId = "4ab25eb9-9f44-4651-84f3-ce864b80f4b0",
+	/*var	variantId = "4ab25eb9-9f44-4651-84f3-ce864b80f4b0",
         variantSecret = "6f51150c-6dd1-4a6e-9538-cfb177b88239",
         pushServerURL = "http://212.158.166.92:8090/ag-push/";
 		
@@ -82,7 +82,7 @@ function showCurlCommand(mergedEndpoint) {
         };
 
         // Register with the UnifiedPush Server
-        client.registerWithPushServer( settings );
+        client.registerWithPushServer( settings );*/
 }
 
 
