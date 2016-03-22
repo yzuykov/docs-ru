@@ -66,7 +66,6 @@ self.addEventListener('push', function(event) {
             }
 
             return showNotification(title, message, icon, notificationData);
-          });
       });
     }).catch(function(err) {
       console.error('Unable to retrieve data', err);
