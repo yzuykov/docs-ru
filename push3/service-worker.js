@@ -22,20 +22,27 @@ self.addEventListener('push', function(event) {
   // an API and use it to populate a notification
   event.waitUntil(
     fetch(API_ENDPOINT).then(function(response) {
-      if (response.status !== 200) {
-        console.log('Looks like there was a problem. Status Code: ' +
-          response.status);
-        // Throw an error so the promise is rejected and catch() is executed
-        throw new Error();
-      }
+        if (response.status !== 200) {
+          // Throw an error so the promise is rejected and catch() is executed
+          throw new Error('Invalid status code from weather API: ' +
+            response.status);
+        }
 
-      // Examine the text in the response
-      return response.json().then(function(data) {
+        // Examine the text in the response
+        return response.json();
+      })
+      .then(function(data) {
+        console.log('API data: ', data);
+        if (data.query.count === 0) {
+          // Throw an error so the promise is rejected and catch() is executed
+          throw new Error();
+        }
         var title = 'You have a new message';
         var message = data.url;
         var icon = 'http://www.wsoft.ru/bitrix/templates/newrus/images/logo.png';
         
         var notificationFilter = {
+          tag: 'simple-push-demo-notification'
         };
         return self.registration.getNotifications(notificationFilter)
           .then(function(notifications) {
