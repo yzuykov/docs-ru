@@ -31,7 +31,6 @@ self.addEventListener('push', function(event) {
     locale: 'RU'
   })
     }
-  )
   ).then(function(response) {
         if (response.status !== 200) {
           // Throw an error so the promise is rejected and catch() is executed
