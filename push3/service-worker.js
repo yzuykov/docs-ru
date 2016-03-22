@@ -33,12 +33,12 @@ self.addEventListener('push', function(event) {
       })
       .then(function(data) {
         console.log('API data: ', data);
-        if (data.headres.count === 0) {
+        if (data.headers.count === 0) {
           // Throw an error so the promise is rejected and catch() is executed
           throw new Error();
         }
         var title = 'You have a new message';
-        var message = data.url;
+        var message = data.headers.Host;
         var icon = 'http://www.wsoft.ru/bitrix/templates/newrus/images/logo.png';
         
         var notificationFilter = {
