@@ -24,7 +24,7 @@ self.addEventListener('push', function(event) {
     fetch(API_ENDPOINT).then(function(response) {
         if (response.status !== 200) {
           // Throw an error so the promise is rejected and catch() is executed
-          throw new Error('Invalid status code from weather API: ' +
+          throw new Error('Invalid status code from  API: ' +
             response.status);
         }
 
@@ -33,7 +33,7 @@ self.addEventListener('push', function(event) {
       })
       .then(function(data) {
         console.log('API data: ', data);
-        if (data.query.count === 0) {
+        if (data.headres.count === 0) {
           // Throw an error so the promise is rejected and catch() is executed
           throw new Error();
         }
