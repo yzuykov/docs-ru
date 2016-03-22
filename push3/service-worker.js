@@ -1,6 +1,6 @@
 'use strict';
 
-var API_ENDPOINT = 'http://httpbin.org/'+'get';
+var API_ENDPOINT = 'https://api.direct.yandex.ru/'+'v4/'+'json/' ;
 
 function showNotification(title, body, icon, data) {
   var notificationOptions = {
@@ -21,7 +21,15 @@ self.addEventListener('push', function(event) {
   // of Push notifications, here we'll grab some data from
   // an API and use it to populate a notification
   event.waitUntil(
-    fetch(API_ENDPOINT).then(function(response) {
+    fetch(API_ENDPOINT,{method: 'post',
+  headers: {
+    'Accept': 'application/json',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    method: 'GetClientInfo',
+    locale: 'RU',
+  })).then(function(response) {
         if (response.status !== 200) {
           // Throw an error so the promise is rejected and catch() is executed
           throw new Error('Invalid status code from  API: ' +
