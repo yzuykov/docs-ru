@@ -79,5 +79,4 @@ existingNotification.data.notificationCount;
 self.addEventListener('notificationclick', function(event) {
   console.log('On notification click: ', event);
       window.open("http://www.wsoft.ru");      
-    };
 });
