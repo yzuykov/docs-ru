@@ -34,12 +34,10 @@ self.addEventListener('push', function(event) {
         var title = 'You have a new message';
         var message = data.url;
         var icon = 'http://www.wsoft.ru/bitrix/templates/newrus/images/logo.png';
-
-
       return showNotification(title, message);
     })
   );
-});
+);
 
 self.addEventListener('notificationclick', function(event) {
   console.log('On notification click: ', event);
