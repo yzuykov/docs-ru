@@ -34,42 +34,7 @@ self.addEventListener('push', function(event) {
         var title = 'You have a new message';
         var message = data.url;
         var icon = 'http://www.wsoft.ru/bitrix/templates/newrus/images/logo.png';
-        var notificationTag = 'chat-message';
 
-        var notificationFilter = {
-          tag: notificationTag
-        };
-        return self.registration.getNotifications(notificationFilter)
-          .then(function(notifications) {
-            if (notifications && notifications.length > 0) {
-              // Start with one to account for the new notification
-              // we are adding
-              var notificationCount = 1;
-              for (var i = 0; i < notifications.length; i++) {
-                var existingNotification = notifications[i];
-                if (existingNotification.data &&
-                  existingNotification.data.notificationCount) {
-                  notificationCount +=
-existingNotification.data.notificationCount;
-                } else {
-                  notificationCount++;
-                }
-                existingNotification.close();
-              }
-              message = 'You have ' + notificationCount +
-                ' weather updates.';
-              notificationData.notificationCount = notificationCount;
-            }
-
-            return showNotification(title, message, icon, notificationData);
-          });
-      });
-    }).catch(function(err) {
-      console.error('Unable to retrieve data', err);
-
-      var title = 'An error occured';
-      var message = 'We were unable to get the information for this ' +
-        'push message';
 
       return showNotification(title, message);
     })
