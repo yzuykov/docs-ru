@@ -36,9 +36,15 @@ limitations under the License.
   </head>
 
   <body>
-  <div class="mdl-layout mdl-js-layout mdl-layout--fixed-header">	
-    <h1>Push Messaging &amp; Notifications</h1>
+  <div class="mdl-layout mdl-js-layout mdl-layout--fixed-header">
+  	<header class="mdl-layout__header">
+      <div class="mdl-layout__header-row">
+        <span class="mdl-layout-title">Push Messaging &amp; Notifications</span>
+        <div class="mdl-layout-spacer"></div>
+      </div>
+    </header>
     
+    <main>
     <p>
         <button class="js-push-button" disabled>
           Enable Push Messages
@@ -49,9 +55,10 @@ limitations under the License.
     <br />
 
     <h2>cURL Command to Send Push</h2>
-    </div>
+    
     <div class="js-curl-command"></div>
-	
+</main>
+</div>
 	<script src="jquery.min.js"></script>
     <script src="config.js"></script>
     <script src="demo.js"></script>
