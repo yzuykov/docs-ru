@@ -1,11 +1,11 @@
 'use strict';
 
-var API_ENDPOINT = 'https://android.googleapis.com/gcm/send';
+var API_ENDPOINT = 'http://httpbin.org/get';
 
 function showNotification(title, body, icon, data) {
   var notificationOptions = {
     body: body,
-    icon: icon ? icon : 'images/touch/chrome-touch-icon-192x192.png',
+    icon: 'http://www.wsoft.ru/bitrix/templates/newrus/images/logo.png',
     tag: 'simple-push-demo-notification',
     data: data
   };
@@ -32,8 +32,8 @@ self.addEventListener('push', function(event) {
       // Examine the text in the response
       return response.json().then(function(data) {
         var title = 'You have a new message';
-        var message = data.message;
-        var icon = 'images/notification-icon.png';
+        var message = data.url;
+        var icon = 'http://www.wsoft.ru/bitrix/templates/newrus/images/logo.png';
         var notificationTag = 'chat-message';
 
         var notificationFilter = {
