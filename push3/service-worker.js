@@ -1,6 +1,6 @@
 'use strict';
 
-var API_ENDPOINT = 'http://httpbin.org/get';
+var API_ENDPOINT = 'http://httpbin.org/'+'get';
 
 function showNotification(title, body, icon, data) {
   var notificationOptions = {
