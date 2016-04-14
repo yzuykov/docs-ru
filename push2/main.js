@@ -16,11 +16,9 @@ function endpointWorkaround(pushSubscription) {
   }
 		
   var mergedEndpoint = pushSubscription.endpoint;
-  console.log(mergedEndpoint);
-  var jsonsub = pushSubscription.toJSON();
-  console.log(jsonsub);
-  var auth = jsonsub.keys.auth;
-  var p256dh = jsonsub.keys.p256dh;
+  console.log(mergedEndpoint)
+  var auth = pushSubscription.getKey('auth');
+  var p256dh = pushSubscription.getKey('p256dh');;
   console.log(auth);
   console.log(p256dh);
   // Chrome 42 + 43 will not have the subscriptionId attached
