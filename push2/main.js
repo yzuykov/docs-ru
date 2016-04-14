@@ -21,6 +21,16 @@ function endpointWorkaround(pushSubscription) {
   var p256dh = pushSubscription.getKey('p256dh');;
   console.log(auth);
   console.log(p256dh);
+  const crypto = require('crypto');
+
+const salt = crypto.randomBytes(16);
+console.log(salt);
+// Node has ECDH built-in to the standard crypto library. For some languages
+// you may need to use a third-party library.
+const serverECDH = crypto.createECDH('prime256v1');
+const serverPublicKey = serverECDH.generateKeys();
+const sharedSecret = serverECDH.computeSecret(clientPublicKey);
+console.log(sharedSecret);
   // Chrome 42 + 43 will not have the subscriptionId attached
   // to the endpoint.
   if (pushSubscription.subscriptionId &&
