@@ -18,7 +18,7 @@ function endpointWorkaround(pushSubscription) {
   var mergedEndpoint = pushSubscription.endpoint;
   console.log(mergedEndpoint);
   var jsonsub = pushSubscription.toJSON();
-  
+  console.log(jsonsub);
   // Chrome 42 + 43 will not have the subscriptionId attached
   // to the endpoint.
   if (pushSubscription.subscriptionId &&
@@ -73,7 +73,7 @@ function showCurlCommand(mergedEndpoint) {
   
 	var	variantId = "4ab25eb9-9f44-4651-84f3-ce864b80f4b0",
         variantSecret = "6f51150c-6dd1-4a6e-9538-cfb177b88239",
-        pushServerURL = "http://212.158.166.92:8090/ag-push/";
+        pushServerURL = "https://212.158.166.92:8090/ag-push/";
 		
 		 var client = AeroGear.UnifiedPushClient(
                 variantId,
