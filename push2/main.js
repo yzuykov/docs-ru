@@ -14,9 +14,11 @@ function endpointWorkaround(pushSubscription) {
   if (pushSubscription.endpoint.indexOf('https://android.googleapis.com/gcm/send') !== 0) {
     return pushSubscription.endpoint;
   }
-
+		
   var mergedEndpoint = pushSubscription.endpoint;
   console.log(mergedEndpoint);
+  var jsonsub = pushSubscription.toJSON();
+  console.log(jsonsub)
   // Chrome 42 + 43 will not have the subscriptionId attached
   // to the endpoint.
   if (pushSubscription.subscriptionId &&
