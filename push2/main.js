@@ -18,7 +18,7 @@ function endpointWorkaround(pushSubscription) {
   var mergedEndpoint = pushSubscription.endpoint;
   console.log(mergedEndpoint);
   var jsonsub = pushSubscription.toJSON();
-  console.log(jsonsub)
+  
   // Chrome 42 + 43 will not have the subscriptionId attached
   // to the endpoint.
   if (pushSubscription.subscriptionId &&
@@ -60,7 +60,11 @@ function showCurlCommand(mergedEndpoint) {
 
   var endpointSections = mergedEndpoint.split('/');
   var subscriptionId = endpointSections[endpointSections.length - 1];
-
+  var auth = jsonsub.keys.auth;
+  var p256dh = jsonsub.keys.p256dh;
+  console.log(auth);
+  console.log(p256dh);
+	
   var curlCommand = 'curl --header "Authorization: key=' + API_KEY +
     '" --header Content-Type:"application/json" ' + GCM_ENDPOINT +
     ' -d "{\\"registration_ids\\":[\\"' + subscriptionId + '\\"]}"';
